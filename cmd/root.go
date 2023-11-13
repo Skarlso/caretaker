@@ -8,6 +8,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const day = 24 * time.Hour
+
 type rootArgsStruct struct {
 	token                     string
 	owner                     string
@@ -37,7 +39,12 @@ func CreateRootCommand() *cobra.Command {
 	flag.StringVar(&rootArgs.token, "token", "", "--token github token")
 	flag.StringVar(&rootArgs.owner, "owner", "", "--owner github organization / owner")
 	flag.StringVar(&rootArgs.repo, "repo", "", "--repo github repository")
-	flag.DurationVar(&rootArgs.staleInterval, "stale-interval", 24*time.Hour, "--stale-interval defines after how long duration a pull request should be considered stale")
+	flag.DurationVar(
+		&rootArgs.staleInterval,
+		"stale-interval",
+		day,
+		"--stale-interval defines after how long duration a pull request should be considered stale",
+	)
 	flag.StringVar(
 		&rootArgs.authorName,
 		"author-name",
@@ -48,7 +55,13 @@ func CreateRootCommand() *cobra.Command {
 		"author-email",
 		"41898282+github-actions[bot]@users.noreply.github.com",
 		"--author-email email address of the committer, defaults to github action's email address")
-	flag.BoolVarP(&rootArgs.verbose, "verbose", "v", false, "--verbose|-v if enabled, will output extra debug information")
+	flag.BoolVarP(
+		&rootArgs.verbose,
+		"verbose",
+		"v",
+		false,
+		"--verbose|-v if enabled, will output extra debug information",
+	)
 	flag.IntVar(
 		&rootArgs.pullRequestNumber,
 		"pull-request-number",
@@ -73,7 +86,7 @@ func CreateRootCommand() *cobra.Command {
 		&rootArgs.pullRequestProcessedLabel,
 		"pull-request-processed-label",
 		"caretaker-processed",
-		"--pull-request-processed-label is the label used to signify that Caretaker already processed this pull request. This label is removed on update.",
+		"--pull-request-processed-label label used to mark pull request as processed. This label is removed on update.",
 	)
 
 	markFlagAsRequired(rootCmd, "token")

@@ -4,10 +4,12 @@ import (
 	"context"
 
 	"github.com/shurcooL/githubv4"
-	"github.com/skarlso/caretaker/pkg/logger"
-	"github.com/skarlso/caretaker/pkg/moveissue"
 	"github.com/spf13/cobra"
 	"golang.org/x/oauth2"
+
+	"github.com/skarlso/caretaker/pkg/client"
+	"github.com/skarlso/caretaker/pkg/logger"
+	"github.com/skarlso/caretaker/pkg/moveissue"
 )
 
 // CreateMoveIssueCommand gets the issue and updates its status to the desired Status.
@@ -29,7 +31,7 @@ func moveIssueRunE(rootArgs *rootArgsStruct) func(cmd *cobra.Command, args []str
 			&oauth2.Token{AccessToken: rootArgs.token},
 		)
 		tc := oauth2.NewClient(ctx, ts)
-		client := githubv4.NewClient(tc)
+		gclient := githubv4.NewClient(tc)
 
 		// setup logger
 		var log logger.Logger = &logger.QuiteLogger{}
@@ -37,14 +39,19 @@ func moveIssueRunE(rootArgs *rootArgsStruct) func(cmd *cobra.Command, args []str
 			log = &logger.VerboseLogger{}
 		}
 
-		log.Log("running move issue command")
+		log.Log("running move command")
 
+		client := client.NewCaretaker(log, gclient, client.Options{
+			Repo:       rootArgs.repo,
+			Owner:      rootArgs.owner,
+			StatusName: rootArgs.statusOption,
+			Interval:   rootArgs.staleInterval,
+			StaleLabel: rootArgs.pullRequestProcessedLabel,
+		})
 		mover := moveissue.NewMoveIssueAction(log, client, moveissue.Options{
-			Repo:              rootArgs.repo,
-			Owner:             rootArgs.owner,
+			PullRequestNumber: rootArgs.pullRequestNumber,
 			StatusName:        rootArgs.statusOption,
 			StaleLabel:        rootArgs.pullRequestProcessedLabel,
-			PullRequestNumber: rootArgs.pullRequestNumber,
 		})
 
 		return mover.Move(ctx)

@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/shurcooL/githubv4"
+	"github.com/skarlso/caretaker/pkg/client"
+	"github.com/skarlso/caretaker/pkg/client/fakes"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/skarlso/caretaker/pkg/logger"
@@ -14,15 +15,15 @@ import (
 func TestChecker_Check(t *testing.T) {
 	tests := []struct {
 		name      string
-		setupMock func() Client
+		setupMock func() client.Client
 		repo      string
 		owner     string
 		wantErr   assert.ErrorAssertionFunc
 	}{
 		{
 			name: "",
-			setupMock: func() Client {
-				return &mockClient{}
+			setupMock: func() client.Client {
+				return &fakes.FakeClient{}
 			},
 			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
 				if err != nil {
@@ -39,25 +40,12 @@ func TestChecker_Check(t *testing.T) {
 			m := tt.setupMock()
 
 			c := &Checker{
-				Options: Options{},
-				client:  m,
-				log:     &log,
+				client: m,
+				log:    &log,
 			}
 			err := c.Check(context.Background())
 
 			tt.wantErr(t, err, fmt.Sprintf("check stale pull requests"))
 		})
 	}
-}
-
-type mockClient struct{}
-
-var _ Client = &mockClient{}
-
-func (m *mockClient) Query(ctx context.Context, q any, variables map[string]any) error {
-	return nil
-}
-
-func (m *mockClient) Mutate(ctx context.Context, mut any, input githubv4.Input, variables map[string]any) error {
-	return nil
 }

@@ -4,11 +4,12 @@ import (
 	"context"
 
 	"github.com/shurcooL/githubv4"
-	"github.com/skarlso/caretaker/pkg/stale"
 	"github.com/spf13/cobra"
 	"golang.org/x/oauth2"
 
+	"github.com/skarlso/caretaker/pkg/client"
 	"github.com/skarlso/caretaker/pkg/logger"
+	"github.com/skarlso/caretaker/pkg/stale"
 )
 
 func CreateStaleCommand(rootArgs *rootArgsStruct) *cobra.Command {
@@ -29,7 +30,7 @@ func staleRunE(rootArgs *rootArgsStruct) func(cmd *cobra.Command, args []string)
 			&oauth2.Token{AccessToken: rootArgs.token},
 		)
 		tc := oauth2.NewClient(ctx, ts)
-		client := githubv4.NewClient(tc)
+		gclient := githubv4.NewClient(tc)
 
 		// setup logger
 		var log logger.Logger = &logger.QuiteLogger{}
@@ -39,13 +40,14 @@ func staleRunE(rootArgs *rootArgsStruct) func(cmd *cobra.Command, args []string)
 
 		log.Log("running stale command")
 
-		checker := stale.NewStaleChecker(log, client, stale.Options{
+		client := client.NewCaretaker(log, gclient, client.Options{
 			Repo:       rootArgs.repo,
 			Owner:      rootArgs.owner,
 			StatusName: rootArgs.statusOption,
 			Interval:   rootArgs.staleInterval,
 			StaleLabel: rootArgs.pullRequestProcessedLabel,
 		})
+		checker := stale.NewStaleChecker(log, client, rootArgs.staleInterval, rootArgs.pullRequestProcessedLabel)
 
 		return checker.Check(ctx)
 	}

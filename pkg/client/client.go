@@ -80,6 +80,8 @@ type GraphQLClient interface {
 }
 
 // Client defines the capabilities of Caretaker.
+//
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/client.go . Client
 type Client interface {
 	AddLabel(ctx context.Context, label string, id githubv4.String) error
 	RemoveLabel(ctx context.Context, label string, id githubv4.String) error

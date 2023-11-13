@@ -21,9 +21,11 @@ func TestChecker_Check(t *testing.T) {
 		wantErr   assert.ErrorAssertionFunc
 	}{
 		{
-			name: "",
+			name: "gathers all pull requests and updates issues",
 			setupMock: func() client.Client {
-				return &fakes.FakeClient{}
+				f := &fakes.FakeClient{}
+				f.PullRequestsReturns([]client.PullRequest{}, nil)
+				return f
 			},
 			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
 				if err != nil {

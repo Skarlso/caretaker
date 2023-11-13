@@ -23,6 +23,19 @@ type FakeClient struct {
 	addLabelReturnsOnCall map[int]struct {
 		result1 error
 	}
+	AssignIssueToProjectStub        func(context.Context, client.Issue, int) error
+	assignIssueToProjectMutex       sync.RWMutex
+	assignIssueToProjectArgsForCall []struct {
+		arg1 context.Context
+		arg2 client.Issue
+		arg3 int
+	}
+	assignIssueToProjectReturns struct {
+		result1 error
+	}
+	assignIssueToProjectReturnsOnCall map[int]struct {
+		result1 error
+	}
 	LeaveCommentStub        func(context.Context, githubv4.String, string) error
 	leaveCommentMutex       sync.RWMutex
 	leaveCommentArgsForCall []struct {
@@ -34,18 +47,6 @@ type FakeClient struct {
 		result1 error
 	}
 	leaveCommentReturnsOnCall map[int]struct {
-		result1 error
-	}
-	MutateIssueStub        func(context.Context, client.Issue) error
-	mutateIssueMutex       sync.RWMutex
-	mutateIssueArgsForCall []struct {
-		arg1 context.Context
-		arg2 client.Issue
-	}
-	mutateIssueReturns struct {
-		result1 error
-	}
-	mutateIssueReturnsOnCall map[int]struct {
 		result1 error
 	}
 	PullRequestStub        func(context.Context, int) (client.PullRequest, error)
@@ -86,6 +87,18 @@ type FakeClient struct {
 		result1 error
 	}
 	removeLabelReturnsOnCall map[int]struct {
+		result1 error
+	}
+	UpdateIssueStatusStub        func(context.Context, client.Issue) error
+	updateIssueStatusMutex       sync.RWMutex
+	updateIssueStatusArgsForCall []struct {
+		arg1 context.Context
+		arg2 client.Issue
+	}
+	updateIssueStatusReturns struct {
+		result1 error
+	}
+	updateIssueStatusReturnsOnCall map[int]struct {
 		result1 error
 	}
 	invocations      map[string][][]interface{}
@@ -155,6 +168,69 @@ func (fake *FakeClient) AddLabelReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeClient) AssignIssueToProject(arg1 context.Context, arg2 client.Issue, arg3 int) error {
+	fake.assignIssueToProjectMutex.Lock()
+	ret, specificReturn := fake.assignIssueToProjectReturnsOnCall[len(fake.assignIssueToProjectArgsForCall)]
+	fake.assignIssueToProjectArgsForCall = append(fake.assignIssueToProjectArgsForCall, struct {
+		arg1 context.Context
+		arg2 client.Issue
+		arg3 int
+	}{arg1, arg2, arg3})
+	stub := fake.AssignIssueToProjectStub
+	fakeReturns := fake.assignIssueToProjectReturns
+	fake.recordInvocation("AssignIssueToProject", []interface{}{arg1, arg2, arg3})
+	fake.assignIssueToProjectMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeClient) AssignIssueToProjectCallCount() int {
+	fake.assignIssueToProjectMutex.RLock()
+	defer fake.assignIssueToProjectMutex.RUnlock()
+	return len(fake.assignIssueToProjectArgsForCall)
+}
+
+func (fake *FakeClient) AssignIssueToProjectCalls(stub func(context.Context, client.Issue, int) error) {
+	fake.assignIssueToProjectMutex.Lock()
+	defer fake.assignIssueToProjectMutex.Unlock()
+	fake.AssignIssueToProjectStub = stub
+}
+
+func (fake *FakeClient) AssignIssueToProjectArgsForCall(i int) (context.Context, client.Issue, int) {
+	fake.assignIssueToProjectMutex.RLock()
+	defer fake.assignIssueToProjectMutex.RUnlock()
+	argsForCall := fake.assignIssueToProjectArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeClient) AssignIssueToProjectReturns(result1 error) {
+	fake.assignIssueToProjectMutex.Lock()
+	defer fake.assignIssueToProjectMutex.Unlock()
+	fake.AssignIssueToProjectStub = nil
+	fake.assignIssueToProjectReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeClient) AssignIssueToProjectReturnsOnCall(i int, result1 error) {
+	fake.assignIssueToProjectMutex.Lock()
+	defer fake.assignIssueToProjectMutex.Unlock()
+	fake.AssignIssueToProjectStub = nil
+	if fake.assignIssueToProjectReturnsOnCall == nil {
+		fake.assignIssueToProjectReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.assignIssueToProjectReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeClient) LeaveComment(arg1 context.Context, arg2 githubv4.String, arg3 string) error {
 	fake.leaveCommentMutex.Lock()
 	ret, specificReturn := fake.leaveCommentReturnsOnCall[len(fake.leaveCommentArgsForCall)]
@@ -214,68 +290,6 @@ func (fake *FakeClient) LeaveCommentReturnsOnCall(i int, result1 error) {
 		})
 	}
 	fake.leaveCommentReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeClient) MutateIssue(arg1 context.Context, arg2 client.Issue) error {
-	fake.mutateIssueMutex.Lock()
-	ret, specificReturn := fake.mutateIssueReturnsOnCall[len(fake.mutateIssueArgsForCall)]
-	fake.mutateIssueArgsForCall = append(fake.mutateIssueArgsForCall, struct {
-		arg1 context.Context
-		arg2 client.Issue
-	}{arg1, arg2})
-	stub := fake.MutateIssueStub
-	fakeReturns := fake.mutateIssueReturns
-	fake.recordInvocation("MutateIssue", []interface{}{arg1, arg2})
-	fake.mutateIssueMutex.Unlock()
-	if stub != nil {
-		return stub(arg1, arg2)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fakeReturns.result1
-}
-
-func (fake *FakeClient) MutateIssueCallCount() int {
-	fake.mutateIssueMutex.RLock()
-	defer fake.mutateIssueMutex.RUnlock()
-	return len(fake.mutateIssueArgsForCall)
-}
-
-func (fake *FakeClient) MutateIssueCalls(stub func(context.Context, client.Issue) error) {
-	fake.mutateIssueMutex.Lock()
-	defer fake.mutateIssueMutex.Unlock()
-	fake.MutateIssueStub = stub
-}
-
-func (fake *FakeClient) MutateIssueArgsForCall(i int) (context.Context, client.Issue) {
-	fake.mutateIssueMutex.RLock()
-	defer fake.mutateIssueMutex.RUnlock()
-	argsForCall := fake.mutateIssueArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
-}
-
-func (fake *FakeClient) MutateIssueReturns(result1 error) {
-	fake.mutateIssueMutex.Lock()
-	defer fake.mutateIssueMutex.Unlock()
-	fake.MutateIssueStub = nil
-	fake.mutateIssueReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeClient) MutateIssueReturnsOnCall(i int, result1 error) {
-	fake.mutateIssueMutex.Lock()
-	defer fake.mutateIssueMutex.Unlock()
-	fake.MutateIssueStub = nil
-	if fake.mutateIssueReturnsOnCall == nil {
-		fake.mutateIssueReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.mutateIssueReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
@@ -472,21 +486,85 @@ func (fake *FakeClient) RemoveLabelReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeClient) UpdateIssueStatus(arg1 context.Context, arg2 client.Issue) error {
+	fake.updateIssueStatusMutex.Lock()
+	ret, specificReturn := fake.updateIssueStatusReturnsOnCall[len(fake.updateIssueStatusArgsForCall)]
+	fake.updateIssueStatusArgsForCall = append(fake.updateIssueStatusArgsForCall, struct {
+		arg1 context.Context
+		arg2 client.Issue
+	}{arg1, arg2})
+	stub := fake.UpdateIssueStatusStub
+	fakeReturns := fake.updateIssueStatusReturns
+	fake.recordInvocation("UpdateIssueStatus", []interface{}{arg1, arg2})
+	fake.updateIssueStatusMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeClient) UpdateIssueStatusCallCount() int {
+	fake.updateIssueStatusMutex.RLock()
+	defer fake.updateIssueStatusMutex.RUnlock()
+	return len(fake.updateIssueStatusArgsForCall)
+}
+
+func (fake *FakeClient) UpdateIssueStatusCalls(stub func(context.Context, client.Issue) error) {
+	fake.updateIssueStatusMutex.Lock()
+	defer fake.updateIssueStatusMutex.Unlock()
+	fake.UpdateIssueStatusStub = stub
+}
+
+func (fake *FakeClient) UpdateIssueStatusArgsForCall(i int) (context.Context, client.Issue) {
+	fake.updateIssueStatusMutex.RLock()
+	defer fake.updateIssueStatusMutex.RUnlock()
+	argsForCall := fake.updateIssueStatusArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeClient) UpdateIssueStatusReturns(result1 error) {
+	fake.updateIssueStatusMutex.Lock()
+	defer fake.updateIssueStatusMutex.Unlock()
+	fake.UpdateIssueStatusStub = nil
+	fake.updateIssueStatusReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeClient) UpdateIssueStatusReturnsOnCall(i int, result1 error) {
+	fake.updateIssueStatusMutex.Lock()
+	defer fake.updateIssueStatusMutex.Unlock()
+	fake.UpdateIssueStatusStub = nil
+	if fake.updateIssueStatusReturnsOnCall == nil {
+		fake.updateIssueStatusReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.updateIssueStatusReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.addLabelMutex.RLock()
 	defer fake.addLabelMutex.RUnlock()
+	fake.assignIssueToProjectMutex.RLock()
+	defer fake.assignIssueToProjectMutex.RUnlock()
 	fake.leaveCommentMutex.RLock()
 	defer fake.leaveCommentMutex.RUnlock()
-	fake.mutateIssueMutex.RLock()
-	defer fake.mutateIssueMutex.RUnlock()
 	fake.pullRequestMutex.RLock()
 	defer fake.pullRequestMutex.RUnlock()
 	fake.pullRequestsMutex.RLock()
 	defer fake.pullRequestsMutex.RUnlock()
 	fake.removeLabelMutex.RLock()
 	defer fake.removeLabelMutex.RUnlock()
+	fake.updateIssueStatusMutex.RLock()
+	defer fake.updateIssueStatusMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

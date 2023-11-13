@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/skarlso/caretaker/pkg/client"
-	"github.com/skarlso/caretaker/pkg/client/fakes"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/skarlso/caretaker/pkg/client"
+	"github.com/skarlso/caretaker/pkg/client/fakes"
 	"github.com/skarlso/caretaker/pkg/logger"
 )
 

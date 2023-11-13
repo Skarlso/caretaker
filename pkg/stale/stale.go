@@ -58,7 +58,7 @@ loop:
 
 		for _, issue := range pr.ClosingIssuesReferences.Nodes {
 			issue := issue
-			if err := c.client.MutateIssue(ctx, issue); err != nil {
+			if err := c.client.UpdateIssueStatus(ctx, issue); err != nil {
 				return fmt.Errorf("failed to mutate issue: %w", err)
 			}
 

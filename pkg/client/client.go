@@ -84,11 +84,12 @@ type GraphQLClient interface {
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/client.go . Client
 type Client interface {
 	AddLabel(ctx context.Context, label string, id githubv4.String) error
+	AssignIssueToProject(ctx context.Context, issueNumber, projectNumber int) error
+	LeaveComment(ctx context.Context, prID githubv4.String, comment string) error
 	RemoveLabel(ctx context.Context, label string, id githubv4.String) error
 	PullRequests(ctx context.Context) ([]PullRequest, error)
 	PullRequest(ctx context.Context, prNumber int) (PullRequest, error)
-	MutateIssue(ctx context.Context, issue Issue) error
-	LeaveComment(ctx context.Context, prID githubv4.String, comment string) error
+	UpdateIssueStatus(ctx context.Context, issue Issue) error
 }
 
 // Options are for Caretaker's functionality.
@@ -147,6 +148,10 @@ func (c *Caretaker) AddLabel(ctx context.Context, label string, id githubv4.Stri
 
 	c.log.Debug("added label to pull request")
 
+	return nil
+}
+
+func (c *Caretaker) AssignIssueToProject(ctx context.Context, issueNumber, projectNumber int) error {
 	return nil
 }
 
@@ -218,7 +223,7 @@ func (c *Caretaker) PullRequest(ctx context.Context, prNumber int) (PullRequest,
 	return queryPullRequests.Repository.PullRequest, nil
 }
 
-func (c *Caretaker) MutateIssue(ctx context.Context, issue Issue) error {
+func (c *Caretaker) UpdateIssueStatus(ctx context.Context, issue Issue) error {
 	if issue.Closed {
 		c.log.Log("issue already closed, skip")
 

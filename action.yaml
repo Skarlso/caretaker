@@ -39,9 +39,9 @@ inputs:
     description: 'The status to set when moving an issue. This should contain any emojis.'
     required: false
   isOrganization:
-    description: 'Indicate whether the user is an organization or a user.'
+    description: 'Indicate whether the user is an organization or a user. False if empty.'
     required: false
-    default: 'false'
+    default: ''
   pullRequestProcessedLabel:
     description: 'The value of the label to apply to a pull request to mark it processed by Caretaker.'
     required: false

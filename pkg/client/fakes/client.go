@@ -23,11 +23,11 @@ type FakeClient struct {
 	addLabelReturnsOnCall map[int]struct {
 		result1 error
 	}
-	AssignIssueToProjectStub        func(context.Context, client.Issue, int) error
+	AssignIssueToProjectStub        func(context.Context, int, int) error
 	assignIssueToProjectMutex       sync.RWMutex
 	assignIssueToProjectArgsForCall []struct {
 		arg1 context.Context
-		arg2 client.Issue
+		arg2 int
 		arg3 int
 	}
 	assignIssueToProjectReturns struct {
@@ -168,12 +168,12 @@ func (fake *FakeClient) AddLabelReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeClient) AssignIssueToProject(arg1 context.Context, arg2 client.Issue, arg3 int) error {
+func (fake *FakeClient) AssignIssueToProject(arg1 context.Context, arg2 int, arg3 int) error {
 	fake.assignIssueToProjectMutex.Lock()
 	ret, specificReturn := fake.assignIssueToProjectReturnsOnCall[len(fake.assignIssueToProjectArgsForCall)]
 	fake.assignIssueToProjectArgsForCall = append(fake.assignIssueToProjectArgsForCall, struct {
 		arg1 context.Context
-		arg2 client.Issue
+		arg2 int
 		arg3 int
 	}{arg1, arg2, arg3})
 	stub := fake.AssignIssueToProjectStub
@@ -195,13 +195,13 @@ func (fake *FakeClient) AssignIssueToProjectCallCount() int {
 	return len(fake.assignIssueToProjectArgsForCall)
 }
 
-func (fake *FakeClient) AssignIssueToProjectCalls(stub func(context.Context, client.Issue, int) error) {
+func (fake *FakeClient) AssignIssueToProjectCalls(stub func(context.Context, int, int) error) {
 	fake.assignIssueToProjectMutex.Lock()
 	defer fake.assignIssueToProjectMutex.Unlock()
 	fake.AssignIssueToProjectStub = stub
 }
 
-func (fake *FakeClient) AssignIssueToProjectArgsForCall(i int) (context.Context, client.Issue, int) {
+func (fake *FakeClient) AssignIssueToProjectArgsForCall(i int) (context.Context, int, int) {
 	fake.assignIssueToProjectMutex.RLock()
 	defer fake.assignIssueToProjectMutex.RUnlock()
 	argsForCall := fake.assignIssueToProjectArgsForCall[i]

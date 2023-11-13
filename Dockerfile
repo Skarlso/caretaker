@@ -15,7 +15,7 @@ COPY --from=build /caretaker /app/
 
 LABEL "name"="Caretaker"
 LABEL "maintainer"="Gergely Brautigam <gergely@gergelybrautigam.com>"
-LABEL "version"="0.0.1"
+LABEL "version"="0.1.0"
 
 LABEL "com.github.actions.name"="Caretake - Project Manager"
 LABEL "com.github.actions.description"="Manage project issues automatically."

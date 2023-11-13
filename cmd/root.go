@@ -19,10 +19,11 @@ type rootArgsStruct struct {
 	verbose                   bool
 	pullRequestNumber         int
 	issueNumber               int
-	projectNumber             string
+	projectNumber             int
 	statusOption              string
 	staleInterval             time.Duration
 	pullRequestProcessedLabel string
+	isOrganization            string // string because GitHub actions does not support boolean arguments
 }
 
 func CreateRootCommand() *cobra.Command {
@@ -72,11 +73,11 @@ func CreateRootCommand() *cobra.Command {
 		"issue-number",
 		0,
 		"--issue-number the number of the issue currently inspected")
-	flag.StringVar(
+	flag.IntVar(
 		&rootArgs.projectNumber,
 		"project-number",
-		"",
-		"--project-number the number of the project to add a created issue to")
+		0,
+		"--issue-number the number of the project to add a created issue to")
 	flag.StringVar(
 		&rootArgs.statusOption,
 		"status-option",
@@ -87,6 +88,12 @@ func CreateRootCommand() *cobra.Command {
 		"pull-request-processed-label",
 		"caretaker-processed",
 		"--pull-request-processed-label label used to mark pull request as processed. This label is removed on update.",
+	)
+	flag.StringVar(
+		&rootArgs.isOrganization,
+		"is-organization",
+		"",
+		"--is-organization=true is defined if the user is an organization",
 	)
 
 	markFlagAsRequired(rootCmd, "token")

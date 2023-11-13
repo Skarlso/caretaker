@@ -40,8 +40,14 @@ type PullRequest struct {
 	} `graphql:"closingIssuesReferences(first: 10)"`
 }
 
+// ProjectV2Item https://docs.github.com/en/graphql/reference/objects#projectv2item
+type ProjectV2Item struct {
+	ID githubv4.String
+}
+
 // Issue https://docs.github.com/en/graphql/reference/objects#issue
 type Issue struct {
+	ID         githubv4.ID
 	Closed     githubv4.Boolean
 	Title      githubv4.String
 	Number     githubv4.Int
@@ -50,20 +56,21 @@ type Issue struct {
 	} `graphql:"projectsV2(first: 1)"` // we assume an issue is only part of a single project
 	ProjectItems struct {
 		TotalCount githubv4.Int
-		Nodes      []struct {
-			ID githubv4.String
-		}
+		Nodes      []ProjectV2Item
 	} `graphql:"projectItems(first: 1)"` // there should be only one card associated with this issue
 }
 
 // Label https://docs.github.com/en/graphql/reference/objects#label
 type Label struct{}
 
+type Field struct{}
+
 // ProjectV2 https://docs.github.com/en/graphql/reference/objects#projectv2
 type ProjectV2 struct {
-	Title githubv4.String
-	ID    githubv4.String
-	Field struct {
+	Title  githubv4.String
+	ID     githubv4.String
+	Number githubv4.Int
+	Field  struct { // TODO: Make this optional. Makes the query a bit not nice.
 		ProjectV2SingleSelectField struct {
 			ID      githubv4.String
 			Options []struct {
@@ -94,11 +101,12 @@ type Client interface {
 
 // Options are for Caretaker's functionality.
 type Options struct {
-	Repo       string
-	Owner      string
-	StatusName string
-	Interval   time.Duration
-	StaleLabel string
+	Repo           string
+	Owner          string
+	StatusName     string
+	Interval       time.Duration
+	StaleLabel     string
+	IsOrganization bool
 }
 
 // Caretaker defines the main Caretaker capabilities.
@@ -152,7 +160,28 @@ func (c *Caretaker) AddLabel(ctx context.Context, label string, id githubv4.Stri
 }
 
 func (c *Caretaker) AssignIssueToProject(ctx context.Context, issueNumber, projectNumber int) error {
-	return nil
+	var getIssueQuery struct {
+		Repository struct {
+			Issue Issue `graphql:"issue(number: $issue)"`
+		} `graphql:"repository(owner: $owner, name: $name)"`
+	}
+
+	issueValues := map[string]any{
+		"owner":      githubv4.String(c.Owner),
+		"name":       githubv4.String(c.Repo),
+		"issue":      githubv4.Int(issueNumber),
+		"statusName": githubv4.String(""),
+	}
+
+	if err := c.gclient.Query(ctx, &getIssueQuery, issueValues); err != nil {
+		return fmt.Errorf("failed to find issue with number %d: %w", issueNumber, err)
+	}
+
+	if c.IsOrganization {
+		return c.assignToOrganization(ctx, &getIssueQuery.Repository.Issue, projectNumber)
+	}
+
+	return c.assignToUser(ctx, &getIssueQuery.Repository.Issue, projectNumber)
 }
 
 func (c *Caretaker) RemoveLabel(ctx context.Context, label string, id githubv4.String) error {
@@ -321,4 +350,72 @@ func (c *Caretaker) queryLabelID(ctx context.Context, label string) (githubv4.St
 	}
 
 	return queryLabelID.Repository.Labels.Nodes[0].ID, nil
+}
+
+func (c *Caretaker) assignToOrganization(ctx context.Context, issue *Issue, projectNumber int) error {
+	projectValues := map[string]any{
+		"login":      githubv4.String(c.Owner),
+		"number":     githubv4.Int(projectNumber),
+		"statusName": githubv4.String(""),
+	}
+
+	var projectQuery struct {
+		Organization struct {
+			ProjectV2 ProjectV2 `graphql:"projectV2(number: $number)"`
+		} `graphql:"organization(login: $login)"`
+	}
+
+	if err := c.gclient.Query(ctx, &projectQuery, projectValues); err != nil {
+		return fmt.Errorf("failed to find project with number %d for owner %s: %w", projectNumber, c.Owner, err)
+	}
+
+	return c.assignIssueToProject(ctx, projectQuery.Organization.ProjectV2, issue)
+}
+
+func (c *Caretaker) assignToUser(ctx context.Context, issue *Issue, projectNumber int) error {
+	projectValues := map[string]any{
+		"login":      githubv4.String(c.Owner),
+		"number":     githubv4.Int(projectNumber),
+		"statusName": githubv4.String(""),
+	}
+
+	var projectQuery struct {
+		User struct {
+			ProjectV2 ProjectV2 `graphql:"projectV2(number: $number)"`
+		} `graphql:"user(login: $login)"`
+	}
+
+	if err := c.gclient.Query(ctx, &projectQuery, projectValues); err != nil {
+		return fmt.Errorf("failed to find project with number %d for owner %s: %w", projectNumber, c.Owner, err)
+	}
+
+	return c.assignIssueToProject(ctx, projectQuery.User.ProjectV2, issue)
+}
+
+func (c *Caretaker) assignIssueToProject(ctx context.Context, project ProjectV2, issue *Issue) error {
+	c.log.Log(
+		"assigning issue number %d with title %s to project number %d and title %s",
+		issue.Number,
+		issue.Title,
+		project.Number,
+		project.Title,
+	)
+
+	// mutateIssue sets the Status of an Issue to the desired option.
+	var addProjectV2ItemByID struct {
+		AddProjectV2ItemById struct { //nolint:stylecheck,revive // this needs to be Id.
+			Item ProjectV2Item
+		} `graphql:"addProjectV2ItemById(input: $input)"`
+	}
+
+	input := githubv4.AddProjectV2ItemByIdInput{
+		ProjectID: project.ID,
+		ContentID: issue.ID,
+	}
+
+	if err := c.gclient.Mutate(ctx, &addProjectV2ItemByID, input, nil); err != nil {
+		return fmt.Errorf("failed to assign issue to project: %w", err)
+	}
+
+	return nil
 }

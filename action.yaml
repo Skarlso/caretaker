@@ -1,0 +1,73 @@
+# action.yml
+name: 'Caretaker Project Manager'
+description: 'A simple action to automatically manage projects and issues for PRs.'
+inputs:
+  command:
+    description: 'The command to execute for Caretaker'
+    required: true
+    default: ''
+  token:  # id of input
+    description: 'GitHub token.'
+    required: true
+    default: ''
+  repo:
+    description: 'The repository.'
+    required: true
+    default: ''
+  owner:
+    description: 'The owner organization or user.'
+    required: true
+    default: ''
+  authorName:
+    description: 'Name of user with which the PR will be created.'
+    required: false
+    default: 'Github Action'
+  authorEmail:
+    description: 'Email address of the pull request creator.'
+    required: false
+    default: '41898282+github-actions[bot]@users.noreply.github.com'
+  projectNumber:
+    description: 'The number of the project to use when issue is created.'
+    required: false
+  pullRequestNumber:
+    description: 'The number of the pull request that triggered this event.'
+    required: false
+  issueNumber:
+    description: 'The number of the issue that triggered this event.'
+    required: false
+  statusOption:
+    description: 'The status to set when moving an issue. This should contain any emojis.'
+    required: false
+  isOrganization:
+    description: 'Indicate whether the user is an organization or a user.'
+    required: false
+    default: 'false'
+  pullRequestProcessedLabel:
+    description: 'The value of the label to apply to a pull request to mark it processed by Caretaker.'
+    required: false
+    default: 'caretaker-reviewed'
+  staleInterval:
+    description: 'The interval in which to check pull requests.'
+    required: false
+    default: '24h'
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - ${{ inputs.command }}
+    - --token=${{ inputs.token }}
+    - --repo=${{ inputs.repo }}
+    - --owner=${{ inputs.owner }}
+    - --author-name=${{ inputs.authorName }}
+    - --author-email=${{ inputs.authorEmail }}
+    - --project-number=${{ inputs.projectNumber }}
+    - --pull-request-number=${{ inputs.pullRequestNumber }}
+    - --issue-number=${{ inputs.issueNumber }}
+    - --status-option=${{ inputs.statusOption }}
+    - --is-organization=${{ inputs.isOrganization }}
+    - --pull-request-processed-label=${{ inputs.pullRequestProcessedLabel }}
+    - --stale-interval=${{ inputs.staleInterval }}
+branding:
+  icon: "arrow-right-circle"
+  color: purple
+author: "Gergely Brautigam"

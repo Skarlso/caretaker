@@ -3,7 +3,7 @@ release:
 
 builds:
   - id: default
-    binary: dependabot-bundler
+    binary: caretaker
     flags:
       - -tags
       - netgo release
@@ -16,7 +16,6 @@ builds:
     goos:
       - linux
       - darwin
-      - windows
     goarch:
       - amd64
     goarm:
@@ -26,10 +25,10 @@ archives:
   - id: default
     builds:
       - default
-    name_template: "dependabot-bundler_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
+    name_template: "caretaker_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
     format: tar.gz
     files:
       - none*
 
 checksum:
-  name_template: "dependabot-bundler_checksums.txt"
+  name_template: "caretaker_checksums.txt"

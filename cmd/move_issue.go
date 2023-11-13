@@ -2,6 +2,9 @@ package cmd
 
 import (
 	"context"
+	"fmt"
+	"strconv"
+	"time"
 
 	"github.com/shurcooL/githubv4"
 	"github.com/spf13/cobra"
@@ -41,15 +44,25 @@ func moveIssueRunE(rootArgs *rootArgsStruct) func(cmd *cobra.Command, args []str
 
 		log.Log("running move command")
 
+		interval, err := time.ParseDuration(rootArgs.staleInterval)
+		if err != nil {
+			return fmt.Errorf("failed to parse interval: %w", err)
+		}
+
+		prNumber, err := strconv.Atoi(rootArgs.pullRequestNumber)
+		if err != nil {
+			return fmt.Errorf("failed to convert pull request number: %w", err)
+		}
+
 		client := client.NewCaretaker(log, gclient, client.Options{
 			Repo:       rootArgs.repo,
 			Owner:      rootArgs.owner,
 			StatusName: rootArgs.statusOption,
-			Interval:   rootArgs.staleInterval,
+			Interval:   interval,
 			StaleLabel: rootArgs.pullRequestProcessedLabel,
 		})
 		mover := moveissue.NewMoveIssueAction(log, client, moveissue.Options{
-			PullRequestNumber: rootArgs.pullRequestNumber,
+			PullRequestNumber: prNumber,
 			StatusName:        rootArgs.statusOption,
 			StaleLabel:        rootArgs.pullRequestProcessedLabel,
 		})

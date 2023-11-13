@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/shurcooL/githubv4"
 	"github.com/spf13/cobra"
@@ -40,14 +42,19 @@ func staleRunE(rootArgs *rootArgsStruct) func(cmd *cobra.Command, args []string)
 
 		log.Log("running stale command")
 
+		interval, err := time.ParseDuration(rootArgs.staleInterval)
+		if err != nil {
+			return fmt.Errorf("failed to parse interval: %w", err)
+		}
+
 		client := client.NewCaretaker(log, gclient, client.Options{
 			Repo:       rootArgs.repo,
 			Owner:      rootArgs.owner,
 			StatusName: rootArgs.statusOption,
-			Interval:   rootArgs.staleInterval,
+			Interval:   interval,
 			StaleLabel: rootArgs.pullRequestProcessedLabel,
 		})
-		checker := stale.NewStaleChecker(log, client, rootArgs.staleInterval, rootArgs.pullRequestProcessedLabel)
+		checker := stale.NewStaleChecker(log, client, interval, rootArgs.pullRequestProcessedLabel)
 
 		return checker.Check(ctx)
 	}

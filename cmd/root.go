@@ -3,13 +3,11 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/spf13/cobra"
 )
 
-const day = 24 * time.Hour
-
+// All of these are string to conform to GitHub's map[string]string actions.yaml.
 type rootArgsStruct struct {
 	token                     string
 	owner                     string
@@ -17,13 +15,13 @@ type rootArgsStruct struct {
 	authorName                string
 	authorEmail               string
 	verbose                   bool
-	pullRequestNumber         int
-	issueNumber               int
-	projectNumber             int
+	pullRequestNumber         string
+	issueNumber               string
+	projectNumber             string
 	statusOption              string
-	staleInterval             time.Duration
+	staleInterval             string
 	pullRequestProcessedLabel string
-	isOrganization            string // string because GitHub actions does not support boolean arguments
+	isOrganization            string
 }
 
 func CreateRootCommand() *cobra.Command {
@@ -40,10 +38,10 @@ func CreateRootCommand() *cobra.Command {
 	flag.StringVar(&rootArgs.token, "token", "", "--token github token")
 	flag.StringVar(&rootArgs.owner, "owner", "", "--owner github organization / owner")
 	flag.StringVar(&rootArgs.repo, "repo", "", "--repo github repository")
-	flag.DurationVar(
+	flag.StringVar(
 		&rootArgs.staleInterval,
 		"stale-interval",
-		day,
+		"24h",
 		"--stale-interval defines after how long duration a pull request should be considered stale",
 	)
 	flag.StringVar(
@@ -63,20 +61,20 @@ func CreateRootCommand() *cobra.Command {
 		false,
 		"--verbose|-v if enabled, will output extra debug information",
 	)
-	flag.IntVar(
+	flag.StringVar(
 		&rootArgs.pullRequestNumber,
 		"pull-request-number",
-		0,
+		"0",
 		"--pull-request-number is the number of the pull request currently inspected")
-	flag.IntVar(
+	flag.StringVar(
 		&rootArgs.issueNumber,
 		"issue-number",
-		0,
+		"0",
 		"--issue-number the number of the issue currently inspected")
-	flag.IntVar(
+	flag.StringVar(
 		&rootArgs.projectNumber,
 		"project-number",
-		0,
+		"0",
 		"--issue-number the number of the project to add a created issue to")
 	flag.StringVar(
 		&rootArgs.statusOption,

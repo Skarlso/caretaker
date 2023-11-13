@@ -2,6 +2,9 @@ package cmd
 
 import (
 	"context"
+	"fmt"
+	"strconv"
+	"time"
 
 	"github.com/shurcooL/githubv4"
 	"github.com/spf13/cobra"
@@ -40,17 +43,32 @@ func assignIssueRunE(rootArgs *rootArgsStruct) func(cmd *cobra.Command, args []s
 
 		log.Log("running assign command")
 
+		interval, err := time.ParseDuration(rootArgs.staleInterval)
+		if err != nil {
+			return fmt.Errorf("failed to parse interval: %w", err)
+		}
+
+		projectNumber, err := strconv.Atoi(rootArgs.projectNumber)
+		if err != nil {
+			return fmt.Errorf("failed to convert pull request number: %w", err)
+		}
+
+		issueNumber, err := strconv.Atoi(rootArgs.issueNumber)
+		if err != nil {
+			return fmt.Errorf("failed to convert issue number: %w", err)
+		}
+
 		client := client.NewCaretaker(log, gclient, client.Options{
 			Repo:           rootArgs.repo,
 			Owner:          rootArgs.owner,
 			StatusName:     rootArgs.statusOption,
-			Interval:       rootArgs.staleInterval,
+			Interval:       interval,
 			StaleLabel:     rootArgs.pullRequestProcessedLabel,
 			IsOrganization: rootArgs.isOrganization != "",
 		})
 		assigner := assignissue.NewAssignIssueAction(log, client, assignissue.Options{
-			ProjectNumber: rootArgs.projectNumber,
-			IssueNumber:   rootArgs.issueNumber,
+			ProjectNumber: projectNumber,
+			IssueNumber:   issueNumber,
 		})
 
 		return assigner.Assign(ctx)

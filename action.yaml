@@ -29,12 +29,15 @@ inputs:
   projectNumber:
     description: 'The number of the project to use when issue is created.'
     required: false
+    default: '0'
   pullRequestNumber:
     description: 'The number of the pull request that triggered this event.'
     required: false
+    default: '0'
   issueNumber:
     description: 'The number of the issue that triggered this event.'
     required: false
+    default: '0'
   statusOption:
     description: 'The status to set when moving an issue. This should contain any emojis.'
     required: false

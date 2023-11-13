@@ -3,6 +3,9 @@ RUN apk add -u git
 WORKDIR /app
 COPY pkg/ pkg/
 COPY cmd/ cmd/
+COPY main.go main.go
+COPY go.mod go.mod
+COPY go.sum go.sum
 
 RUN go build -o /caretaker
 

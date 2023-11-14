@@ -9,23 +9,23 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/oauth2"
 
-	"github.com/skarlso/caretaker/pkg/assignissue"
 	"github.com/skarlso/caretaker/pkg/client"
 	"github.com/skarlso/caretaker/pkg/logger"
+	"github.com/skarlso/caretaker/pkg/updateissue"
 )
 
-func CreateAssignIssueCommand(rootArgs *rootArgsStruct) *cobra.Command {
-	createIssueCmd := &cobra.Command{
-		Use:   "assign-issue",
-		Short: "Assigns an issue created in this repository to a specific project.",
+func CreateUpdateIssueCommand(rootArgs *rootArgsStruct) *cobra.Command {
+	updateIssueCmd := &cobra.Command{
+		Use:   "update-issue",
+		Short: "Sets an issue into the desired state. Can be used regardless of any actions.",
 	}
 
-	createIssueCmd.RunE = assignIssueRunE(rootArgs)
+	updateIssueCmd.RunE = updateIssueRunE(rootArgs)
 
-	return createIssueCmd
+	return updateIssueCmd
 }
 
-func assignIssueRunE(rootArgs *rootArgsStruct) func(cmd *cobra.Command, args []string) error {
+func updateIssueRunE(rootArgs *rootArgsStruct) func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		ctx := context.Background()
 		ts := oauth2.StaticTokenSource(
@@ -40,12 +40,7 @@ func assignIssueRunE(rootArgs *rootArgsStruct) func(cmd *cobra.Command, args []s
 			log = &logger.VerboseLogger{}
 		}
 
-		log.Log("running assign command")
-
-		projectNumber, err := strconv.Atoi(rootArgs.projectNumber)
-		if err != nil {
-			return fmt.Errorf("failed to convert pull request number: %w", err)
-		}
+		log.Log("running update command")
 
 		issueNumber, err := strconv.Atoi(rootArgs.issueNumber)
 		if err != nil {
@@ -56,14 +51,12 @@ func assignIssueRunE(rootArgs *rootArgsStruct) func(cmd *cobra.Command, args []s
 			Repo:             rootArgs.repo,
 			Owner:            rootArgs.owner,
 			TargetStatusName: rootArgs.statusOption,
-			ScanLabel:        rootArgs.pullRequestProcessedLabel,
 			IsOrganization:   rootArgs.isOrganization != "",
 		})
-		assigner := assignissue.NewAssignIssueAction(log, client, assignissue.Options{
-			ProjectNumber: projectNumber,
-			IssueNumber:   issueNumber,
+		updater := updateissue.NewUpdateIssueAction(log, client, updateissue.Options{
+			IssueNumber: issueNumber,
 		})
 
-		return assigner.Assign(ctx)
+		return updater.Update(ctx)
 	}
 }

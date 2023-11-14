@@ -1,4 +1,4 @@
-package stale
+package scan
 
 import (
 	"context"
@@ -41,13 +41,13 @@ func TestChecker_Check(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			m := tt.setupMock()
 
-			c := &Checker{
+			c := &Scanner{
 				client: m,
 				log:    &log,
 			}
-			err := c.Check(context.Background())
+			err := c.Scan(context.Background())
 
-			tt.wantErr(t, err, fmt.Sprintf("check stale pull requests"))
+			tt.wantErr(t, err, fmt.Sprintf("check scan pull requests"))
 		})
 	}
 }

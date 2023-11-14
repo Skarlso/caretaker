@@ -1,4 +1,4 @@
-package stale
+package scan
 
 import (
 	"context"
@@ -9,24 +9,24 @@ import (
 	"github.com/skarlso/caretaker/pkg/logger"
 )
 
-type Checker struct {
-	interval   time.Duration
-	staleLabel string
-	client     client.Client
-	log        logger.Logger
+type Scanner struct {
+	interval  time.Duration
+	scanLabel string
+	client    client.Client
+	log       logger.Logger
 }
 
-func NewStaleChecker(log logger.Logger, client client.Client, interval time.Duration, staleLabel string) *Checker {
-	return &Checker{
-		log:        log,
-		client:     client,
-		interval:   interval,
-		staleLabel: staleLabel,
+func NewScanner(log logger.Logger, client client.Client, interval time.Duration, scanLabel string) *Scanner {
+	return &Scanner{
+		log:       log,
+		client:    client,
+		interval:  interval,
+		scanLabel: scanLabel,
 	}
 }
 
-// Check checks if any associated issues should be moved into a different column based on this PR.
-func (c *Checker) Check(ctx context.Context) error {
+// Scan checks if any associated issues should be moved into a different column based on this PR.
+func (c *Scanner) Scan(ctx context.Context) error {
 	pullRequests, err := c.client.PullRequests(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to list pull requests: %w", err)
@@ -38,7 +38,7 @@ loop:
 		pr := pr
 
 		for _, label := range pr.Labels.Nodes {
-			if string(label.Name) == c.staleLabel {
+			if string(label.Name) == c.scanLabel {
 				c.log.Log("pull request with number %d already processed", pr.Number)
 
 				continue loop
@@ -65,7 +65,7 @@ loop:
 			c.log.Debug("issue number %d successfully mutated", issue.Number)
 		}
 
-		if err := c.client.AddLabel(ctx, c.staleLabel, pr.ID); err != nil {
+		if err := c.client.AddLabel(ctx, c.scanLabel, pr.ID); err != nil {
 			return fmt.Errorf("failed to add label to processed entity: %w", err)
 		}
 

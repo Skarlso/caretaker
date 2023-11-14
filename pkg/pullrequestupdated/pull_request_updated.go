@@ -1,4 +1,4 @@
-package moveissue
+package pullrequestupdated
 
 import (
 	"context"
@@ -11,26 +11,26 @@ import (
 type Options struct {
 	PullRequestNumber int
 	StatusName        string
-	StaleLabel        string
+	ScanLabel         string
 }
 
-type Mover struct {
+type Updater struct {
 	Options
 
 	client client.Client
 	log    logger.Logger
 }
 
-func NewMoveIssueAction(log logger.Logger, client client.Client, opts Options) *Mover {
-	return &Mover{
+func NewUpdater(log logger.Logger, client client.Client, opts Options) *Updater {
+	return &Updater{
 		log:     log,
 		client:  client,
 		Options: opts,
 	}
 }
 
-// Move moves issues into a specific status on a given Pull Request.
-func (c *Mover) Move(ctx context.Context) error {
+// PullRequestUpdated moves issues into a specific status on a given Pull Request.
+func (c *Updater) PullRequestUpdated(ctx context.Context) error {
 	pr, err := c.client.PullRequest(ctx, c.PullRequestNumber)
 	if err != nil {
 		return fmt.Errorf("failed to get pull request: %w", err)
@@ -51,7 +51,7 @@ func (c *Mover) Move(ctx context.Context) error {
 		c.log.Debug("issue number %d successfully mutated", issue.Number)
 	}
 
-	if err := c.client.RemoveLabel(ctx, c.StaleLabel, pr.ID); err != nil {
+	if err := c.client.RemoveLabel(ctx, c.ScanLabel, pr.ID); err != nil {
 		return fmt.Errorf("failed to remove label from entity: %w", err)
 	}
 

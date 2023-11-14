@@ -19,7 +19,7 @@ type rootArgsStruct struct {
 	issueNumber               string
 	projectNumber             string
 	statusOption              string
-	staleInterval             string
+	scanInterval              string
 	pullRequestProcessedLabel string
 	isOrganization            string
 }
@@ -39,10 +39,10 @@ func CreateRootCommand() *cobra.Command {
 	flag.StringVar(&rootArgs.owner, "owner", "", "--owner github organization / owner")
 	flag.StringVar(&rootArgs.repo, "repo", "", "--repo github repository")
 	flag.StringVar(
-		&rootArgs.staleInterval,
-		"stale-interval",
+		&rootArgs.scanInterval,
+		"scan-interval",
 		"24h",
-		"--stale-interval defines after how long duration a pull request should be considered stale",
+		"--scan-interval defines after how long duration a pull request should be considered scan",
 	)
 	flag.StringVar(
 		&rootArgs.authorName,
@@ -98,11 +98,12 @@ func CreateRootCommand() *cobra.Command {
 	markFlagAsRequired(rootCmd, "owner")
 	markFlagAsRequired(rootCmd, "repo")
 
-	staleCmd := CreateStaleCommand(rootArgs)
+	scanCmd := CreateScanCommand(rootArgs)
 	createIssueCmd := CreateCreateIssueCommand(rootArgs)
-	moveIssueCmd := CreateMoveIssueCommand(rootArgs)
+	pullRequestUpdatedCmd := CreatePullRequestUpdatedCommand(rootArgs)
 	assignIssueCmd := CreateAssignIssueCommand(rootArgs)
-	rootCmd.AddCommand(staleCmd, createIssueCmd, moveIssueCmd, assignIssueCmd)
+	updateIssueCmd := CreateUpdateIssueCommand(rootArgs)
+	rootCmd.AddCommand(scanCmd, createIssueCmd, pullRequestUpdatedCmd, assignIssueCmd, updateIssueCmd)
 
 	return rootCmd
 }

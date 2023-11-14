@@ -97,16 +97,17 @@ type Client interface {
 	PullRequests(ctx context.Context) ([]PullRequest, error)
 	PullRequest(ctx context.Context, prNumber int) (PullRequest, error)
 	UpdateIssueStatus(ctx context.Context, issue Issue) error
+	Issue(ctx context.Context, issueNumber int) (Issue, error)
 }
 
 // Options are for Caretaker's functionality.
 type Options struct {
-	Repo           string
-	Owner          string
-	StatusName     string
-	Interval       time.Duration
-	StaleLabel     string
-	IsOrganization bool
+	Repo             string
+	Owner            string
+	TargetStatusName string
+	Interval         time.Duration
+	ScanLabel        string
+	IsOrganization   bool
 }
 
 // Caretaker defines the main Caretaker capabilities.
@@ -221,7 +222,7 @@ func (c *Caretaker) PullRequests(ctx context.Context) ([]PullRequest, error) {
 	variables := map[string]any{
 		"owner":      githubv4.String(c.Owner),
 		"name":       githubv4.String(c.Repo),
-		"statusName": githubv4.String(c.StatusName),
+		"statusName": githubv4.String(c.TargetStatusName),
 	}
 
 	if err := c.gclient.Query(ctx, &queryPullRequests, variables); err != nil {
@@ -241,15 +242,36 @@ func (c *Caretaker) PullRequest(ctx context.Context, prNumber int) (PullRequest,
 	variables := map[string]any{
 		"owner":      githubv4.String(c.Owner),
 		"name":       githubv4.String(c.Repo),
-		"statusName": githubv4.String(c.StatusName),
+		"statusName": githubv4.String(c.TargetStatusName),
 		"pullNumber": githubv4.Int(prNumber),
 	}
 
 	if err := c.gclient.Query(ctx, &queryPullRequests, variables); err != nil {
-		return PullRequest{}, fmt.Errorf("failed to list all pull requests: %w", err)
+		return PullRequest{}, fmt.Errorf("failed to get pull requests: %w", err)
 	}
 
 	return queryPullRequests.Repository.PullRequest, nil
+}
+
+func (c *Caretaker) Issue(ctx context.Context, issueNumber int) (Issue, error) {
+	var queryPullRequests struct {
+		Repository struct {
+			Issue Issue `graphql:"issue(number: $issueNumber)"`
+		} `graphql:"repository(owner: $owner, name: $name)"`
+	}
+
+	variables := map[string]any{
+		"owner":      githubv4.String(c.Owner),
+		"name":       githubv4.String(c.Repo),
+		"statusName": githubv4.String(c.TargetStatusName),
+		"pullNumber": githubv4.Int(issueNumber),
+	}
+
+	if err := c.gclient.Query(ctx, &queryPullRequests, variables); err != nil {
+		return Issue{}, fmt.Errorf("failed to get issue: %w", err)
+	}
+
+	return queryPullRequests.Repository.Issue, nil
 }
 
 func (c *Caretaker) UpdateIssueStatus(ctx context.Context, issue Issue) error {
@@ -277,7 +299,7 @@ func (c *Caretaker) UpdateIssueStatus(ctx context.Context, issue Issue) error {
 	project := issue.ProjectsV2.Nodes[0]
 
 	if l := len(project.Field.ProjectV2SingleSelectField.Options); l != 1 {
-		return fmt.Errorf("incorrect number of options found for name %s; want 1; got: %d", c.StatusName, l)
+		return fmt.Errorf("incorrect number of options found for name %s; want 1; got: %d", c.TargetStatusName, l)
 	}
 
 	c.log.Debug("associated issue number %d and title %s on project: %s", issue.Number, issue.Title, project.Title)

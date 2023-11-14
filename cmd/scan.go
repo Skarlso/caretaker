@@ -11,21 +11,21 @@ import (
 
 	"github.com/skarlso/caretaker/pkg/client"
 	"github.com/skarlso/caretaker/pkg/logger"
-	"github.com/skarlso/caretaker/pkg/stale"
+	"github.com/skarlso/caretaker/pkg/scan"
 )
 
-func CreateStaleCommand(rootArgs *rootArgsStruct) *cobra.Command {
-	staleCmd := &cobra.Command{
-		Use:   "stale",
+func CreateScanCommand(rootArgs *rootArgsStruct) *cobra.Command {
+	scanCmd := &cobra.Command{
+		Use:   "scan",
 		Short: "Marks issues belonging to PRs that are over 24 hours old as in review",
 	}
 
-	staleCmd.RunE = staleRunE(rootArgs)
+	scanCmd.RunE = scanRunE(rootArgs)
 
-	return staleCmd
+	return scanCmd
 }
 
-func staleRunE(rootArgs *rootArgsStruct) func(cmd *cobra.Command, args []string) error {
+func scanRunE(rootArgs *rootArgsStruct) func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		ctx := context.Background()
 		ts := oauth2.StaticTokenSource(
@@ -40,22 +40,22 @@ func staleRunE(rootArgs *rootArgsStruct) func(cmd *cobra.Command, args []string)
 			log = &logger.VerboseLogger{}
 		}
 
-		log.Log("running stale command")
+		log.Log("running scan command")
 
-		interval, err := time.ParseDuration(rootArgs.staleInterval)
+		interval, err := time.ParseDuration(rootArgs.scanInterval)
 		if err != nil {
 			return fmt.Errorf("failed to parse interval: %w", err)
 		}
 
 		client := client.NewCaretaker(log, gclient, client.Options{
-			Repo:       rootArgs.repo,
-			Owner:      rootArgs.owner,
-			StatusName: rootArgs.statusOption,
-			Interval:   interval,
-			StaleLabel: rootArgs.pullRequestProcessedLabel,
+			Repo:             rootArgs.repo,
+			Owner:            rootArgs.owner,
+			TargetStatusName: rootArgs.statusOption,
+			Interval:         interval,
+			ScanLabel:        rootArgs.pullRequestProcessedLabel,
 		})
-		checker := stale.NewStaleChecker(log, client, interval, rootArgs.pullRequestProcessedLabel)
+		scanner := scan.NewScanner(log, client, interval, rootArgs.pullRequestProcessedLabel)
 
-		return checker.Check(ctx)
+		return scanner.Scan(ctx)
 	}
 }

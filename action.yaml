@@ -49,7 +49,7 @@ inputs:
     description: 'The value of the label to apply to a pull request to mark it processed by Caretaker.'
     required: false
     default: 'caretaker-reviewed'
-  staleInterval:
+  scanInterval:
     description: 'The interval in which to check pull requests.'
     required: false
     default: '24h'
@@ -69,7 +69,7 @@ runs:
     - --status-option=${{ inputs.statusOption }}
     - --is-organization=${{ inputs.isOrganization }}
     - --pull-request-processed-label=${{ inputs.pullRequestProcessedLabel }}
-    - --stale-interval=${{ inputs.staleInterval }}
+    - --scan-interval=${{ inputs.scanInterval }}
 branding:
   icon: "arrow-right-circle"
   color: purple

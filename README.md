@@ -30,9 +30,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: scan pull request activity
-        uses: skarlso/caretaker@v0.1.0
+        uses: skarlso/caretaker@v0.1.1
         with:
-          command: stale
+          command: scan
           owner: skarlso
           repo: test
           token: ${{ secrets.PROJECT_TOKEN }}
@@ -41,6 +41,10 @@ jobs:
 ```
 
 If the owner of the repository is an organization, please set `isOrganization: true` in `with`.
+
+| :boom: DANGER                                                                                                                                                                                              |
+|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Caretaker comments back into a PR if it finished processing it. In order to avoid triggering the flip back flow, either ignore the actor or set up the flip flow with only pulling and submitting reviews. |
 
 ### Required Labels
 
@@ -64,7 +68,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: flip any related issues
-        uses: skarlso/caretaker@v0.1.0
+        uses: skarlso/caretaker@v0.1.1
         with:
           command: move-issue
           owner: skarlso
@@ -94,7 +98,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: assign issue to project
-        uses: skarlso/caretaker@v0.1.0
+        uses: skarlso/caretaker@v0.1.1
         with:
           command: assign-issue
           owner: skarlso
@@ -105,6 +109,15 @@ jobs:
 ```
 
 _Note_: This will be further extended to add potential default labels to the issue automatically after its creation.
+
+## Update Issue State
+
+There is also a separate command that can be used during any other action regardless of context.
+`update-issue` can be used to set the Status of an issue.
+
+```yaml
+
+```
 
 ## Authentication
 

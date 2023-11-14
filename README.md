@@ -42,9 +42,15 @@ jobs:
 
 If the owner of the repository is an organization, please set `isOrganization: true` in `with`.
 
-| :boom: DANGER                                                                                                                                                                                              |
+| :boom: Note                                                                                                                                                                                                |
 |:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Caretaker comments back into a PR if it finished processing it. In order to avoid triggering the flip back flow, either ignore the actor or set up the flip flow with only pulling and submitting reviews. |
+
+| :bulb: Note                                                                                                  |
+|:-------------------------------------------------------------------------------------------------------------|
+| There is an open issue to make that an optional feature [#6](https://github.com/Skarlso/caretaker/issues/6). |
+
+
 
 ### Required Labels
 
@@ -114,10 +120,6 @@ _Note_: This will be further extended to add potential default labels to the iss
 
 There is also a separate command that can be used during any other action regardless of context.
 `update-issue` can be used to set the Status of an issue.
-
-```yaml
-
-```
 
 ## Authentication
 

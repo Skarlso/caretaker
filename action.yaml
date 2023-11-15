@@ -61,6 +61,10 @@ inputs:
     description: 'The ID of the comment that handles a slash command. Used to add reaction to the comment.'
     required: false
     default: ''
+  commentBody:
+    description: 'The body of the comment.'
+    required: false
+    default: ''
   actor:
     description: 'The actor who performed the command. Used for assigning the user to the pr and related issues.'
     required: false
@@ -85,6 +89,7 @@ runs:
     - --disable-comments=${{ inputs.disableComments }}
     - --slash-command=${{ inputs.slashCommand }}
     - --comment-id=${{ inputs.commentID }}
+    - --comment-body=${{ inputs.commentBody }}
 branding:
   icon: "arrow-right-circle"
   color: purple

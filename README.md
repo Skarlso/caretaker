@@ -134,6 +134,12 @@ In order to trigger a slash command, leave a comment on a pull request like this
 
 Multiple commands can be defined using `\n` delimiter.
 
+If a command requires or takes arguments, those can be provided via a space separated list.
+
+```
+/review status=In Progress,v=1 
+```
+
 The following commands are supported.
 
 ### `/assign`

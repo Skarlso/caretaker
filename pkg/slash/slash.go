@@ -14,7 +14,7 @@ type Command interface {
 	// Execute runs the respective comment. The ID can be obtained through GitHub action's context: github.
 	// cmd can be used for further parsing arguments to the command.
 	// GraphQL object https://docs.github.com/en/graphql/reference/objects#issuecomment
-	Execute(ctx context.Context, pullNumber int, actor, cmd string) error
+	Execute(ctx context.Context, pullNumber int, actor string, args ...string) error
 }
 
 type Slash struct {
@@ -59,7 +59,13 @@ func (s *Slash) Run(ctx context.Context, pullNumber int, actor, commentID, comme
 			return fmt.Errorf("command handler not registered for command %s", cmd)
 		}
 
-		if err := handler.Execute(ctx, pullNumber, actor, cmd); err != nil {
+		var args string
+		if i := strings.Index(cmd, " "); i > 0 {
+			args = cmd[i+1:]
+		}
+
+		// skip the first one as that's the command
+		if err := handler.Execute(ctx, pullNumber, actor, strings.Split(args, ",")...); err != nil {
 			return fmt.Errorf("failed to run command: %w", err)
 		}
 	}

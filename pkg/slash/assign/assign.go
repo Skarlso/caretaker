@@ -24,7 +24,7 @@ func NewHandler(client client.Client) *Handler {
 var _ slash.Command = &Handler{}
 
 // Execute assigns the pull request and all related issues to the user.
-func (h *Handler) Execute(ctx context.Context, pullNumber int, actor, cmd string) error {
+func (h *Handler) Execute(ctx context.Context, pullNumber int, actor string, _ ...string) error {
 	pr, err := h.client.PullRequest(ctx, pullNumber)
 	if err != nil {
 		return fmt.Errorf("failed to get related pull request: %w", err)

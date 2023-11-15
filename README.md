@@ -107,7 +107,7 @@ jobs:
           repo: test
           token: ${{ secrets.PROJECT_TOKEN }}
           issueNumber: ${{ github.event.issue.number }}
-          projectNumber: 2 # the number of the project to assing this issue to.
+          projectNumber: 2 # the number of the project to assign this issue to.
 ```
 
 _Note_: This will be further extended to add potential default labels to the issue automatically after its creation.
@@ -129,9 +129,10 @@ In order to trigger a slash command, leave a comment on a pull request like this
 ```
 /assign
 /review
+/create
 ```
 
-Multiple commands can be defined using `/n` delimiter. No arguments are available right now.
+Multiple commands can be defined using `\n` delimiter.
 
 The following commands are supported.
 
@@ -158,6 +159,7 @@ jobs:
           pullRequestNumber: ${{ github.event.pull_request.number }}
           actor: ${{ github.actor }}
           commentBody: ${{ github.event.comment.body }}
+          commentID: ${{ github.event.comment.node_id }} # used for applying reactions
 ```
 
 This will assign the user to the pull request and ALL attached issues.

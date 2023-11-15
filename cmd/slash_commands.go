@@ -57,7 +57,7 @@ func slashRunE(rootArgs *rootArgsStruct) func(cmd *cobra.Command, args []string)
 		})
 
 		reviewHandler := assign.NewHandler(client)
-		slash := slash.NewSlashHandler()
+		slash := slash.NewSlashHandler(client)
 		slash.RegisterHandler(assign.Command, reviewHandler)
 
 		prNumber, err := strconv.Atoi(rootArgs.pullRequestNumber)
@@ -65,6 +65,6 @@ func slashRunE(rootArgs *rootArgsStruct) func(cmd *cobra.Command, args []string)
 			return fmt.Errorf("failed to convert pull number: %w", err)
 		}
 
-		return slash.Run(context.Background(), prNumber, rootArgs.actor, rootArgs.commentBody)
+		return slash.Run(ctx, prNumber, rootArgs.actor, rootArgs.commentID, rootArgs.commentBody)
 	}
 }

@@ -58,11 +58,11 @@ inputs:
     required: false
     default: '24h'
   commentID:
-    description: 'The ID of the comment that handles a slash command.'
+    description: 'The ID of the comment that handles a slash command. Used to add reaction to the comment.'
     required: false
     default: ''
   actor:
-    description: 'The actor who performed the command.'
+    description: 'The actor who performed the command. Used for assigning the user to the pr and related issues.'
     required: false
     default: ''
 runs:

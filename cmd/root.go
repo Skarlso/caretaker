@@ -24,6 +24,7 @@ type rootArgsStruct struct {
 	isOrganization            string
 	disableComments           string
 	commentBody               string
+	commentID                 string
 	actor                     string
 }
 
@@ -107,6 +108,12 @@ func CreateRootCommand() *cobra.Command {
 		"comment-body",
 		"",
 		"--comment-body:/test the body of the comment as passed from the github action context",
+	)
+	flag.StringVar(
+		&rootArgs.commentID,
+		"comment-id",
+		"",
+		"--comment-id:IC_ the node_id of the comment that triggered this action",
 	)
 	flag.StringVar(
 		&rootArgs.actor,

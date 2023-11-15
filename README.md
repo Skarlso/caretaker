@@ -128,9 +128,10 @@ In order to trigger a slash command, leave a comment on a pull request like this
 
 ```
 /assign
+/review
 ```
 
-For now, only a single command is supported per comment.
+Multiple commands can be defined using `/n` delimiter. No arguments are available right now.
 
 The following commands are supported.
 

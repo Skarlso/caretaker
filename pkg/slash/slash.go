@@ -27,16 +27,22 @@ func (s *Slash) RegisterHandler(key string, cmd Command) {
 }
 
 // Run runs a command parsed from a comment body. The comment MUST NOT contain anything else but the command.
-// TODO: Support multiple commands.
 func (s *Slash) Run(ctx context.Context, pullNumber int, actor, commentBody string) error {
-	if commentBody == "" || !strings.HasPrefix(commentBody, "/") {
-		return fmt.Errorf("invalid comment format, expected comment to start with / but got: %s", commentBody)
+	split := strings.Split(commentBody, "\n")
+	for _, cmd := range split {
+		if cmd == "" || !strings.HasPrefix(cmd, "/") {
+			return fmt.Errorf("invalid comment format, expected comment to start with / but got: %s", cmd)
+		}
+
+		handler, ok := s.supportedCommands[cmd]
+		if !ok {
+			return fmt.Errorf("command handler not registered for command %s", cmd)
+		}
+
+		if err := handler.Execute(ctx, pullNumber, actor, cmd); err != nil {
+			return fmt.Errorf("failed to run command: %w", err)
+		}
 	}
 
-	handler, ok := s.supportedCommands[commentBody]
-	if !ok {
-		return fmt.Errorf("command handler not registered for command %s", "")
-	}
-
-	return handler.Execute(ctx, pullNumber, actor, commentBody)
+	return nil
 }

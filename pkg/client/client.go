@@ -23,7 +23,7 @@ type Repository struct {
 
 // PullRequest https://docs.github.com/en/graphql/reference/objects#pullrequest
 type PullRequest struct {
-	ID        githubv4.String
+	ID        githubv4.ID
 	Number    githubv4.Int
 	UpdatedAt githubv4.Date
 	Labels    struct {
@@ -60,6 +60,20 @@ type Issue struct {
 	} `graphql:"projectItems(first: 1)"` // there should be only one card associated with this issue
 }
 
+// Comment https://docs.github.com/en/graphql/reference/objects#issuecomment
+type Comment struct {
+	ID          githubv4.ID
+	Body        githubv4.String
+	BodyText    githubv4.String
+	Issue       Issue
+	PullRequest PullRequest
+}
+
+// User https://docs.github.com/en/graphql/reference/objects#user
+type User struct {
+	ID githubv4.ID
+}
+
 // Label https://docs.github.com/en/graphql/reference/objects#label
 type Label struct{}
 
@@ -90,14 +104,17 @@ type GraphQLClient interface {
 //
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/client.go . Client
 type Client interface {
-	AddLabel(ctx context.Context, label string, id githubv4.String) error
+	AddLabel(ctx context.Context, label string, id githubv4.ID) error
 	AssignIssueToProject(ctx context.Context, issueNumber, projectNumber int) error
-	LeaveComment(ctx context.Context, prID githubv4.String, comment string) error
-	RemoveLabel(ctx context.Context, label string, id githubv4.String) error
+	AssignUserToAssignable(ctx context.Context, userID, objectID githubv4.ID) error
+	AddReaction(ctx context.Context, objectID githubv4.ID, reaction githubv4.ReactionContent) error
+	LeaveComment(ctx context.Context, prID githubv4.ID, comment string) error
+	RemoveLabel(ctx context.Context, label string, id githubv4.ID) error
 	PullRequests(ctx context.Context) ([]PullRequest, error)
 	PullRequest(ctx context.Context, prNumber int) (PullRequest, error)
 	UpdateIssueStatus(ctx context.Context, issue Issue) error
 	Issue(ctx context.Context, issueNumber int) (Issue, error)
+	User(ctx context.Context, username string) (User, error)
 }
 
 // Options are for Caretaker's functionality.
@@ -131,7 +148,28 @@ func NewCaretaker(log logger.Logger, gc GraphQLClient, opts Options) *Caretaker 
 // Make sure Caretaker implements Client.
 var _ Client = &Caretaker{}
 
-func (c *Caretaker) AddLabel(ctx context.Context, label string, id githubv4.String) error {
+func (c *Caretaker) AddReaction(ctx context.Context, objectID githubv4.ID, reaction githubv4.ReactionContent) error {
+	var addReaction struct {
+		AddReaction struct {
+			Subject struct {
+				ID githubv4.ID
+			}
+		} `graphql:"addReaction(input: $input)"`
+	}
+
+	input := githubv4.AddReactionInput{
+		SubjectID: objectID,
+		Content:   reaction,
+	}
+
+	if err := c.gclient.Mutate(ctx, &addReaction, input, nil); err != nil {
+		return fmt.Errorf("failed to add reaction on object: %w", err)
+	}
+
+	return nil
+}
+
+func (c *Caretaker) AddLabel(ctx context.Context, label string, id githubv4.ID) error {
 	labelID, err := c.queryLabelID(ctx, label)
 	if err != nil {
 		return err
@@ -185,7 +223,26 @@ func (c *Caretaker) AssignIssueToProject(ctx context.Context, issueNumber, proje
 	return c.assignToUser(ctx, &getIssueQuery.Repository.Issue, projectNumber)
 }
 
-func (c *Caretaker) RemoveLabel(ctx context.Context, label string, id githubv4.String) error {
+func (c *Caretaker) AssignUserToAssignable(ctx context.Context, userID, objectID githubv4.ID) error {
+	var addAssigneesToAssignable struct {
+		AddAssigneesToAssignable struct {
+			ClientMutationId githubv4.ID
+		} `graphql:"addAssigneesToAssignable(input: $input)"`
+	}
+
+	input := githubv4.AddAssigneesToAssignableInput{
+		AssignableID: objectID,
+		AssigneeIDs:  []githubv4.ID{userID},
+	}
+
+	if err := c.gclient.Mutate(ctx, &addAssigneesToAssignable, input, nil); err != nil {
+		return fmt.Errorf("failed to assign user to object: %w", err)
+	}
+
+	return nil
+}
+
+func (c *Caretaker) RemoveLabel(ctx context.Context, label string, id githubv4.ID) error {
 	labelID, err := c.queryLabelID(ctx, label)
 	if err != nil {
 		return err
@@ -251,6 +308,22 @@ func (c *Caretaker) PullRequest(ctx context.Context, prNumber int) (PullRequest,
 	}
 
 	return queryPullRequests.Repository.PullRequest, nil
+}
+
+func (c *Caretaker) User(ctx context.Context, name string) (User, error) {
+	var user struct {
+		User User `graphql:"user(login: $name)"`
+	}
+
+	variables := map[string]any{
+		"name": githubv4.String(name),
+	}
+
+	if err := c.gclient.Query(ctx, &user, variables); err != nil {
+		return User{}, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	return user.User, nil
 }
 
 func (c *Caretaker) Issue(ctx context.Context, issueNumber int) (Issue, error) {
@@ -323,11 +396,11 @@ func (c *Caretaker) UpdateIssueStatus(ctx context.Context, issue Issue) error {
 	return nil
 }
 
-func (c *Caretaker) LeaveComment(ctx context.Context, prID githubv4.String, comment string) error {
+func (c *Caretaker) LeaveComment(ctx context.Context, prID githubv4.ID, comment string) error {
 	var leaveComment struct {
 		AddComment struct {
 			Subject struct {
-				ID githubv4.String
+				ID githubv4.ID
 			}
 		} `graphql:"addComment(input: $input)"`
 	}
@@ -346,7 +419,7 @@ func (c *Caretaker) LeaveComment(ctx context.Context, prID githubv4.String, comm
 	return nil
 }
 
-func (c *Caretaker) queryLabelID(ctx context.Context, label string) (githubv4.String, error) {
+func (c *Caretaker) queryLabelID(ctx context.Context, label string) (githubv4.ID, error) {
 	variables := map[string]any{
 		"owner": githubv4.String(c.Owner),
 		"name":  githubv4.String(c.Repo),
@@ -357,7 +430,7 @@ func (c *Caretaker) queryLabelID(ctx context.Context, label string) (githubv4.St
 		Repository struct {
 			Labels struct {
 				Nodes []struct {
-					ID githubv4.String
+					ID githubv4.ID
 				}
 			} `graphql:"labels(first: 1, query: $query)"` // There Can Be Only One!
 		} `graphql:"repository(owner: $owner, name: $name)"`

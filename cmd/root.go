@@ -22,6 +22,9 @@ type rootArgsStruct struct {
 	scanInterval              string
 	pullRequestProcessedLabel string
 	isOrganization            string
+	disableComments           string
+	commentBody               string
+	actor                     string
 }
 
 func CreateRootCommand() *cobra.Command {
@@ -93,17 +96,35 @@ func CreateRootCommand() *cobra.Command {
 		"",
 		"--is-organization=true is defined if the user is an organization",
 	)
+	flag.StringVar(
+		&rootArgs.disableComments,
+		"disable-comments",
+		"",
+		"--disable-comments=true is used to disable caretaker commenting back on PRs",
+	)
+	flag.StringVar(
+		&rootArgs.commentBody,
+		"comment-body",
+		"",
+		"--comment-body:/test the body of the comment as passed from the github action context",
+	)
+	flag.StringVar(
+		&rootArgs.actor,
+		"actor",
+		"",
+		"--actor is the username of the actor who performed the action",
+	)
 
 	markFlagAsRequired(rootCmd, "token")
 	markFlagAsRequired(rootCmd, "owner")
 	markFlagAsRequired(rootCmd, "repo")
 
 	scanCmd := CreateScanCommand(rootArgs)
-	createIssueCmd := CreateCreateIssueCommand(rootArgs)
 	pullRequestUpdatedCmd := CreatePullRequestUpdatedCommand(rootArgs)
 	assignIssueCmd := CreateAssignIssueCommand(rootArgs)
 	updateIssueCmd := CreateUpdateIssueCommand(rootArgs)
-	rootCmd.AddCommand(scanCmd, createIssueCmd, pullRequestUpdatedCmd, assignIssueCmd, updateIssueCmd)
+	slashCommandCmd := CreateSlashCommand(rootArgs)
+	rootCmd.AddCommand(scanCmd, pullRequestUpdatedCmd, assignIssueCmd, updateIssueCmd, slashCommandCmd)
 
 	return rootCmd
 }

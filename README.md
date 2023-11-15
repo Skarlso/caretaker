@@ -46,11 +46,7 @@ If the owner of the repository is an organization, please set `isOrganization: t
 |:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Caretaker comments back into a PR if it finished processing it. In order to avoid triggering the flip back flow, either ignore the actor or set up the flip flow with only pulling and submitting reviews. |
 
-| :bulb: Note                                                                                                  |
-|:-------------------------------------------------------------------------------------------------------------|
-| There is an open issue to make that an optional feature [#6](https://github.com/Skarlso/caretaker/issues/6). |
-
-
+This comment can be disabled by defining `noComment: true` in the `with` section.
 
 ### Required Labels
 
@@ -125,6 +121,45 @@ There is also a separate command that can be used during any other action regard
 
 Since ProjectV2 at the time of this writing, isn't in the scope of the GITHUB_TOKEN, a generated token must be used with
 `org` level read access.
+
+## Slash Commands
+
+In order to trigger a slash command, leave a comment on a pull request like this:
+
+```
+/assign
+```
+
+For now, only a single command is supported per comment.
+
+The following commands are supported.
+
+### `/assign`
+
+```yaml
+name: Assign to pull request and issues.
+
+on: issue_comment
+
+jobs:
+  pr_commented:
+    # This job only runs for pull request comments
+    name: PR comment
+    if: ${{ github.event.issue.pull_request }}
+    steps:
+      - name: assign user to pull request and related issues
+        uses: skarlso/caretaker@v0.2.0
+        with:
+          command: slash
+          owner: skarlso
+          repo: test
+          token: ${{ secrets.PROJECT_TOKEN }}
+          pullRequestNumber: ${{ github.event.pull_request.number }}
+          actor: ${{ github.actor }}
+          commentBody: ${{ github.event.comment.body }}
+```
+
+This will assign the user to the pull request and ALL attached issues.
 
 ## Up-coming
 

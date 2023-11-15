@@ -10,18 +10,20 @@ import (
 )
 
 type Scanner struct {
-	interval  time.Duration
-	scanLabel string
-	client    client.Client
-	log       logger.Logger
+	interval        time.Duration
+	scanLabel       string
+	client          client.Client
+	log             logger.Logger
+	disableComments bool
 }
 
-func NewScanner(log logger.Logger, client client.Client, interval time.Duration, scanLabel string) *Scanner {
+func NewScanner(log logger.Logger, client client.Client, interval time.Duration, scanLabel string, disableComments bool) *Scanner {
 	return &Scanner{
-		log:       log,
-		client:    client,
-		interval:  interval,
-		scanLabel: scanLabel,
+		log:             log,
+		client:          client,
+		interval:        interval,
+		scanLabel:       scanLabel,
+		disableComments: disableComments,
 	}
 }
 
@@ -69,9 +71,11 @@ loop:
 			return fmt.Errorf("failed to add label to processed entity: %w", err)
 		}
 
-		if err := c.client.LeaveComment(ctx, pr.ID, "Pull request successfully processed by Caretaker."); err != nil {
-			c.log.Log("failed to leave comment on pull request %d with error: %s", pr.Number, err)
-			// we continue as everything else seemed to have worked and a comment shouldn't stop the flow
+		if !c.disableComments {
+			if err := c.client.LeaveComment(ctx, pr.ID, "Pull request successfully processed by Caretaker."); err != nil {
+				c.log.Log("failed to leave comment on pull request %d with error: %s", pr.Number, err)
+				// we continue as everything else seemed to have worked and a comment shouldn't stop the flow
+			}
 		}
 	}
 

@@ -23,6 +23,19 @@ type FakeClient struct {
 	addLabelReturnsOnCall map[int]struct {
 		result1 error
 	}
+	AddReactionStub        func(context.Context, string, githubv4.ReactionContent) error
+	addReactionMutex       sync.RWMutex
+	addReactionArgsForCall []struct {
+		arg1 context.Context
+		arg2 string
+		arg3 githubv4.ReactionContent
+	}
+	addReactionReturns struct {
+		result1 error
+	}
+	addReactionReturnsOnCall map[int]struct {
+		result1 error
+	}
 	AssignIssueToProjectStub        func(context.Context, int, int) error
 	assignIssueToProjectMutex       sync.RWMutex
 	assignIssueToProjectArgsForCall []struct {
@@ -34,6 +47,19 @@ type FakeClient struct {
 		result1 error
 	}
 	assignIssueToProjectReturnsOnCall map[int]struct {
+		result1 error
+	}
+	AssignUserToAssignableStub        func(context.Context, string, string) error
+	assignUserToAssignableMutex       sync.RWMutex
+	assignUserToAssignableArgsForCall []struct {
+		arg1 context.Context
+		arg2 string
+		arg3 string
+	}
+	assignUserToAssignableReturns struct {
+		result1 error
+	}
+	assignUserToAssignableReturnsOnCall map[int]struct {
 		result1 error
 	}
 	IssueStub        func(context.Context, int) (client.Issue, error)
@@ -115,6 +141,20 @@ type FakeClient struct {
 	updateIssueStatusReturnsOnCall map[int]struct {
 		result1 error
 	}
+	UserStub        func(context.Context, string) (client.User, error)
+	userMutex       sync.RWMutex
+	userArgsForCall []struct {
+		arg1 context.Context
+		arg2 string
+	}
+	userReturns struct {
+		result1 client.User
+		result2 error
+	}
+	userReturnsOnCall map[int]struct {
+		result1 client.User
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -182,6 +222,69 @@ func (fake *FakeClient) AddLabelReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeClient) AddReaction(arg1 context.Context, arg2 string, arg3 githubv4.ReactionContent) error {
+	fake.addReactionMutex.Lock()
+	ret, specificReturn := fake.addReactionReturnsOnCall[len(fake.addReactionArgsForCall)]
+	fake.addReactionArgsForCall = append(fake.addReactionArgsForCall, struct {
+		arg1 context.Context
+		arg2 string
+		arg3 githubv4.ReactionContent
+	}{arg1, arg2, arg3})
+	stub := fake.AddReactionStub
+	fakeReturns := fake.addReactionReturns
+	fake.recordInvocation("AddReaction", []interface{}{arg1, arg2, arg3})
+	fake.addReactionMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeClient) AddReactionCallCount() int {
+	fake.addReactionMutex.RLock()
+	defer fake.addReactionMutex.RUnlock()
+	return len(fake.addReactionArgsForCall)
+}
+
+func (fake *FakeClient) AddReactionCalls(stub func(context.Context, string, githubv4.ReactionContent) error) {
+	fake.addReactionMutex.Lock()
+	defer fake.addReactionMutex.Unlock()
+	fake.AddReactionStub = stub
+}
+
+func (fake *FakeClient) AddReactionArgsForCall(i int) (context.Context, string, githubv4.ReactionContent) {
+	fake.addReactionMutex.RLock()
+	defer fake.addReactionMutex.RUnlock()
+	argsForCall := fake.addReactionArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeClient) AddReactionReturns(result1 error) {
+	fake.addReactionMutex.Lock()
+	defer fake.addReactionMutex.Unlock()
+	fake.AddReactionStub = nil
+	fake.addReactionReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeClient) AddReactionReturnsOnCall(i int, result1 error) {
+	fake.addReactionMutex.Lock()
+	defer fake.addReactionMutex.Unlock()
+	fake.AddReactionStub = nil
+	if fake.addReactionReturnsOnCall == nil {
+		fake.addReactionReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.addReactionReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeClient) AssignIssueToProject(arg1 context.Context, arg2 int, arg3 int) error {
 	fake.assignIssueToProjectMutex.Lock()
 	ret, specificReturn := fake.assignIssueToProjectReturnsOnCall[len(fake.assignIssueToProjectArgsForCall)]
@@ -241,6 +344,69 @@ func (fake *FakeClient) AssignIssueToProjectReturnsOnCall(i int, result1 error) 
 		})
 	}
 	fake.assignIssueToProjectReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeClient) AssignUserToAssignable(arg1 context.Context, arg2 string, arg3 string) error {
+	fake.assignUserToAssignableMutex.Lock()
+	ret, specificReturn := fake.assignUserToAssignableReturnsOnCall[len(fake.assignUserToAssignableArgsForCall)]
+	fake.assignUserToAssignableArgsForCall = append(fake.assignUserToAssignableArgsForCall, struct {
+		arg1 context.Context
+		arg2 string
+		arg3 string
+	}{arg1, arg2, arg3})
+	stub := fake.AssignUserToAssignableStub
+	fakeReturns := fake.assignUserToAssignableReturns
+	fake.recordInvocation("AssignUserToAssignable", []interface{}{arg1, arg2, arg3})
+	fake.assignUserToAssignableMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeClient) AssignUserToAssignableCallCount() int {
+	fake.assignUserToAssignableMutex.RLock()
+	defer fake.assignUserToAssignableMutex.RUnlock()
+	return len(fake.assignUserToAssignableArgsForCall)
+}
+
+func (fake *FakeClient) AssignUserToAssignableCalls(stub func(context.Context, string, string) error) {
+	fake.assignUserToAssignableMutex.Lock()
+	defer fake.assignUserToAssignableMutex.Unlock()
+	fake.AssignUserToAssignableStub = stub
+}
+
+func (fake *FakeClient) AssignUserToAssignableArgsForCall(i int) (context.Context, string, string) {
+	fake.assignUserToAssignableMutex.RLock()
+	defer fake.assignUserToAssignableMutex.RUnlock()
+	argsForCall := fake.assignUserToAssignableArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeClient) AssignUserToAssignableReturns(result1 error) {
+	fake.assignUserToAssignableMutex.Lock()
+	defer fake.assignUserToAssignableMutex.Unlock()
+	fake.AssignUserToAssignableStub = nil
+	fake.assignUserToAssignableReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeClient) AssignUserToAssignableReturnsOnCall(i int, result1 error) {
+	fake.assignUserToAssignableMutex.Lock()
+	defer fake.assignUserToAssignableMutex.Unlock()
+	fake.AssignUserToAssignableStub = nil
+	if fake.assignUserToAssignableReturnsOnCall == nil {
+		fake.assignUserToAssignableReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.assignUserToAssignableReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
@@ -627,13 +793,82 @@ func (fake *FakeClient) UpdateIssueStatusReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeClient) User(arg1 context.Context, arg2 string) (client.User, error) {
+	fake.userMutex.Lock()
+	ret, specificReturn := fake.userReturnsOnCall[len(fake.userArgsForCall)]
+	fake.userArgsForCall = append(fake.userArgsForCall, struct {
+		arg1 context.Context
+		arg2 string
+	}{arg1, arg2})
+	stub := fake.UserStub
+	fakeReturns := fake.userReturns
+	fake.recordInvocation("User", []interface{}{arg1, arg2})
+	fake.userMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeClient) UserCallCount() int {
+	fake.userMutex.RLock()
+	defer fake.userMutex.RUnlock()
+	return len(fake.userArgsForCall)
+}
+
+func (fake *FakeClient) UserCalls(stub func(context.Context, string) (client.User, error)) {
+	fake.userMutex.Lock()
+	defer fake.userMutex.Unlock()
+	fake.UserStub = stub
+}
+
+func (fake *FakeClient) UserArgsForCall(i int) (context.Context, string) {
+	fake.userMutex.RLock()
+	defer fake.userMutex.RUnlock()
+	argsForCall := fake.userArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeClient) UserReturns(result1 client.User, result2 error) {
+	fake.userMutex.Lock()
+	defer fake.userMutex.Unlock()
+	fake.UserStub = nil
+	fake.userReturns = struct {
+		result1 client.User
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) UserReturnsOnCall(i int, result1 client.User, result2 error) {
+	fake.userMutex.Lock()
+	defer fake.userMutex.Unlock()
+	fake.UserStub = nil
+	if fake.userReturnsOnCall == nil {
+		fake.userReturnsOnCall = make(map[int]struct {
+			result1 client.User
+			result2 error
+		})
+	}
+	fake.userReturnsOnCall[i] = struct {
+		result1 client.User
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.addLabelMutex.RLock()
 	defer fake.addLabelMutex.RUnlock()
+	fake.addReactionMutex.RLock()
+	defer fake.addReactionMutex.RUnlock()
 	fake.assignIssueToProjectMutex.RLock()
 	defer fake.assignIssueToProjectMutex.RUnlock()
+	fake.assignUserToAssignableMutex.RLock()
+	defer fake.assignUserToAssignableMutex.RUnlock()
 	fake.issueMutex.RLock()
 	defer fake.issueMutex.RUnlock()
 	fake.leaveCommentMutex.RLock()
@@ -646,6 +881,8 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	defer fake.removeLabelMutex.RUnlock()
 	fake.updateIssueStatusMutex.RLock()
 	defer fake.updateIssueStatusMutex.RUnlock()
+	fake.userMutex.RLock()
+	defer fake.userMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

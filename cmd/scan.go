@@ -54,7 +54,7 @@ func scanRunE(rootArgs *rootArgsStruct) func(cmd *cobra.Command, args []string) 
 			Interval:         interval,
 			ScanLabel:        rootArgs.pullRequestProcessedLabel,
 		})
-		scanner := scan.NewScanner(log, client, interval, rootArgs.pullRequestProcessedLabel)
+		scanner := scan.NewScanner(log, client, interval, rootArgs.pullRequestProcessedLabel, rootArgs.disableComments != "")
 
 		return scanner.Scan(ctx)
 	}

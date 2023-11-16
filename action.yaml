@@ -87,7 +87,6 @@ runs:
     - --pull-request-processed-label=${{ inputs.pullRequestProcessedLabel }}
     - --scan-interval=${{ inputs.scanInterval }}
     - --disable-comments=${{ inputs.disableComments }}
-    - --slash-command=${{ inputs.slashCommand }}
     - --comment-id=${{ inputs.commentID }}
     - --comment-body=${{ inputs.commentBody }}
 branding:

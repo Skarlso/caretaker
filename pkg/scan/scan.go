@@ -5,25 +5,31 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/shurcooL/githubv4"
+
 	"github.com/skarlso/caretaker/pkg/client"
 	"github.com/skarlso/caretaker/pkg/logger"
 )
 
-type Scanner struct {
-	interval        time.Duration
-	scanLabel       string
-	client          client.Client
-	log             logger.Logger
-	disableComments bool
+type Options struct {
+	Interval        time.Duration
+	ScanLabel       string
+	DisableComments bool
+	StatusName      string
 }
 
-func NewScanner(log logger.Logger, client client.Client, interval time.Duration, scanLabel string, disableComments bool) *Scanner {
+type Scanner struct {
+	Options
+
+	client client.Client
+	log    logger.Logger
+}
+
+func NewScanner(log logger.Logger, client client.Client, opts Options) *Scanner {
 	return &Scanner{
-		log:             log,
-		client:          client,
-		interval:        interval,
-		scanLabel:       scanLabel,
-		disableComments: disableComments,
+		log:     log,
+		client:  client,
+		Options: opts,
 	}
 }
 
@@ -40,7 +46,7 @@ loop:
 		pr := pr
 
 		for _, label := range pr.Labels.Nodes {
-			if string(label.Name) == c.scanLabel {
+			if string(label.Name) == c.ScanLabel {
 				c.log.Log("pull request with number %d already processed", pr.Number)
 
 				continue loop
@@ -48,7 +54,7 @@ loop:
 		}
 
 		// If the last action ( any action ) on the Pull Request is after now, skip it.
-		if pr.UpdatedAt.Add(c.interval).After(now) {
+		if pr.UpdatedAt.Add(c.Interval).After(now) {
 			continue
 		}
 
@@ -60,18 +66,18 @@ loop:
 
 		for _, issue := range pr.ClosingIssuesReferences.Nodes {
 			issue := issue
-			if err := c.client.UpdateIssueStatus(ctx, issue); err != nil {
+			if err := c.client.UpdateIssueStatus(ctx, issue, githubv4.String(c.StatusName)); err != nil {
 				return fmt.Errorf("failed to mutate issue: %w", err)
 			}
 
 			c.log.Debug("issue number %d successfully mutated", issue.Number)
 		}
 
-		if err := c.client.AddLabel(ctx, c.scanLabel, pr.ID); err != nil {
+		if err := c.client.AddLabel(ctx, c.ScanLabel, pr.ID); err != nil {
 			return fmt.Errorf("failed to add label to processed entity: %w", err)
 		}
 
-		if !c.disableComments {
+		if !c.DisableComments {
 			if err := c.client.LeaveComment(ctx, pr.ID, "Pull request successfully processed by Caretaker."); err != nil {
 				c.log.Log("failed to leave comment on pull request %d with error: %s", pr.Number, err)
 				// we continue as everything else seemed to have worked and a comment shouldn't stop the flow

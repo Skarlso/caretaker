@@ -49,3 +49,7 @@ func (h *Handler) Execute(ctx context.Context, pullNumber int, actor string, _ .
 
 	return nil
 }
+
+func (h *Handler) Help() string {
+	return "- `/assign` assign this pull request and all attached issues to the actor"
+}

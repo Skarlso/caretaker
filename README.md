@@ -6,6 +6,10 @@ Caretaker automates project ( beta ) based processes.
 
 The following automation options are available at the moment of writing.
 
+| :boom: WARNING                                                                                                                                                            |
+|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Since this action can modify your organization's Project board and issue status it is recommended that you restrict access to it to organization members and maintainers. |
+
 ## Periodic pull request scanning
 
 Caretaker can track pull request activity. It does that by checking the last activity on the pull request.
@@ -129,7 +133,7 @@ In order to trigger a slash command, leave a comment on a pull request like this
 ```
 /assign
 /review
-/create
+/help
 ```
 
 Multiple commands can be defined using `\n` delimiter.
@@ -140,12 +144,10 @@ If a command requires or takes arguments, those can be provided via a space sepa
 /review status=In Progress,v=1 
 ```
 
-The following commands are supported.
-
-### `/assign`
+To set up Slash commands configure a GitHub action like this:
 
 ```yaml
-name: Assign to pull request and issues.
+name: Watch for Slash commands.
 
 on: issue_comment
 
@@ -155,7 +157,7 @@ jobs:
     name: PR comment
     if: ${{ github.event.issue.pull_request }}
     steps:
-      - name: assign user to pull request and related issues
+      - name: watch for slash commands from users
         uses: skarlso/caretaker@v0.2.0
         with:
           command: slash
@@ -168,7 +170,8 @@ jobs:
           commentID: ${{ github.event.comment.node_id }} # used for applying reactions
 ```
 
-This will assign the user to the pull request and ALL attached issues.
+To see what commands are available, simply comment on a pull request `/help` which should result in something like this:
+![help-command](img/help-command.png)
 
 ## Up-coming
 

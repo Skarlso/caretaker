@@ -53,11 +53,9 @@ func assignIssueRunE(rootArgs *rootArgsStruct) func(cmd *cobra.Command, args []s
 		}
 
 		client := client.NewCaretaker(log, gclient, client.Options{
-			Repo:             rootArgs.repo,
-			Owner:            rootArgs.owner,
-			TargetStatusName: rootArgs.statusOption,
-			ScanLabel:        rootArgs.pullRequestProcessedLabel,
-			IsOrganization:   rootArgs.isOrganization != "",
+			Repo:           rootArgs.repo,
+			Owner:          rootArgs.owner,
+			IsOrganization: rootArgs.isOrganization != "",
 		})
 		assigner := assignissue.NewAssignIssueAction(log, client, assignissue.Options{
 			ProjectNumber: projectNumber,

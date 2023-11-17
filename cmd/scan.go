@@ -48,13 +48,15 @@ func scanRunE(rootArgs *rootArgsStruct) func(cmd *cobra.Command, args []string) 
 		}
 
 		client := client.NewCaretaker(log, gclient, client.Options{
-			Repo:             rootArgs.repo,
-			Owner:            rootArgs.owner,
-			TargetStatusName: rootArgs.statusOption,
-			Interval:         interval,
-			ScanLabel:        rootArgs.pullRequestProcessedLabel,
+			Repo:  rootArgs.repo,
+			Owner: rootArgs.owner,
 		})
-		scanner := scan.NewScanner(log, client, interval, rootArgs.pullRequestProcessedLabel, rootArgs.disableComments != "")
+		scanner := scan.NewScanner(log, client, scan.Options{
+			Interval:        interval,
+			ScanLabel:       rootArgs.pullRequestProcessedLabel,
+			DisableComments: rootArgs.disableComments != "",
+			StatusName:      rootArgs.statusOption,
+		})
 
 		return scanner.Scan(ctx)
 	}

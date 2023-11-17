@@ -13,6 +13,7 @@ import (
 	"github.com/skarlso/caretaker/pkg/logger"
 	"github.com/skarlso/caretaker/pkg/slash"
 	"github.com/skarlso/caretaker/pkg/slash/assign"
+	"github.com/skarlso/caretaker/pkg/slash/review"
 )
 
 // CreateSlashCommand defines a command that handles comments made by users on objects that Caretaker tracks.
@@ -56,15 +57,18 @@ func slashRunE(rootArgs *rootArgsStruct) func(cmd *cobra.Command, args []string)
 			IsOrganization: rootArgs.isOrganization != "",
 		})
 
-		reviewHandler := assign.NewHandler(client)
-		slash := slash.NewSlashHandler(client)
-		slash.RegisterHandler(assign.Command, reviewHandler)
+		assignHandler := assign.NewHandler(client)
+		reviewHandler := review.NewHandler(client)
+		s := slash.NewSlashHandler(client)
+		s.RegisterHandler(assign.Command, assignHandler)
+		s.RegisterHandler(review.Command, reviewHandler)
+		s.RegisterHandler(slash.Help, s)
 
 		prNumber, err := strconv.Atoi(rootArgs.pullRequestNumber)
 		if err != nil {
 			return fmt.Errorf("failed to convert pull number: %w", err)
 		}
 
-		return slash.Run(ctx, prNumber, rootArgs.actor, rootArgs.commentID, rootArgs.commentBody)
+		return s.Run(ctx, prNumber, rootArgs.actor, rootArgs.commentID, rootArgs.commentBody)
 	}
 }

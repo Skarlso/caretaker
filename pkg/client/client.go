@@ -3,7 +3,6 @@ package client
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/shurcooL/githubv4"
 
@@ -77,19 +76,18 @@ type User struct {
 // Label https://docs.github.com/en/graphql/reference/objects#label
 type Label struct{}
 
-type Field struct{}
-
 // ProjectV2 https://docs.github.com/en/graphql/reference/objects#projectv2
 type ProjectV2 struct {
 	Title  githubv4.String
 	ID     githubv4.String
 	Number githubv4.Int
-	Field  struct { // TODO: Make this optional. Makes the query a bit not nice.
+	Field  struct {
 		ProjectV2SingleSelectField struct {
 			ID      githubv4.String
 			Options []struct {
-				ID githubv4.String
-			} `graphql:"options(names: [$statusName])"`
+				ID   githubv4.String
+				Name githubv4.String
+			}
 		} `graphql:"... on ProjectV2SingleSelectField"`
 	} `graphql:"field(name: \"Status\")"` // gather the selection options for the Status field
 }
@@ -105,26 +103,22 @@ type GraphQLClient interface {
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/client.go . Client
 type Client interface {
 	AddLabel(ctx context.Context, label string, id githubv4.ID) error
-	AssignIssueToProject(ctx context.Context, issueNumber, projectNumber int) error
+	RemoveLabel(ctx context.Context, label string, id githubv4.ID) error
+	AssignIssueToProject(ctx context.Context, issueNumber, projectNumber int) error // Consider combining these two
 	AssignUserToAssignable(ctx context.Context, userID, objectID githubv4.ID) error
 	AddReaction(ctx context.Context, objectID githubv4.ID, reaction githubv4.ReactionContent) error
 	LeaveComment(ctx context.Context, prID githubv4.ID, comment string) error
-	RemoveLabel(ctx context.Context, label string, id githubv4.ID) error
 	PullRequests(ctx context.Context) ([]PullRequest, error)
 	PullRequest(ctx context.Context, prNumber int) (PullRequest, error)
-	UpdateIssueStatus(ctx context.Context, issue Issue) error
-	Issue(ctx context.Context, issueNumber int) (Issue, error)
+	UpdateIssueStatus(ctx context.Context, issue Issue, statusName githubv4.String) error
 	User(ctx context.Context, username string) (User, error)
 }
 
 // Options are for Caretaker's functionality.
 type Options struct {
-	Repo             string
-	Owner            string
-	TargetStatusName string
-	Interval         time.Duration
-	ScanLabel        string
-	IsOrganization   bool
+	Repo           string
+	Owner          string
+	IsOrganization bool
 }
 
 // Caretaker defines the main Caretaker capabilities.
@@ -206,10 +200,9 @@ func (c *Caretaker) AssignIssueToProject(ctx context.Context, issueNumber, proje
 	}
 
 	issueValues := map[string]any{
-		"owner":      githubv4.String(c.Owner),
-		"name":       githubv4.String(c.Repo),
-		"issue":      githubv4.Int(issueNumber),
-		"statusName": githubv4.String(""),
+		"owner": githubv4.String(c.Owner),
+		"name":  githubv4.String(c.Repo),
+		"issue": githubv4.Int(issueNumber),
 	}
 
 	if err := c.gclient.Query(ctx, &getIssueQuery, issueValues); err != nil {
@@ -226,7 +219,7 @@ func (c *Caretaker) AssignIssueToProject(ctx context.Context, issueNumber, proje
 func (c *Caretaker) AssignUserToAssignable(ctx context.Context, userID, objectID githubv4.ID) error {
 	var addAssigneesToAssignable struct {
 		AddAssigneesToAssignable struct {
-			ClientMutationId githubv4.ID
+			ClientMutationID githubv4.ID `graphql:"clientMutationId"`
 		} `graphql:"addAssigneesToAssignable(input: $input)"`
 	}
 
@@ -277,9 +270,8 @@ func (c *Caretaker) PullRequests(ctx context.Context) ([]PullRequest, error) {
 	}
 
 	variables := map[string]any{
-		"owner":      githubv4.String(c.Owner),
-		"name":       githubv4.String(c.Repo),
-		"statusName": githubv4.String(c.TargetStatusName),
+		"owner": githubv4.String(c.Owner),
+		"name":  githubv4.String(c.Repo),
 	}
 
 	if err := c.gclient.Query(ctx, &queryPullRequests, variables); err != nil {
@@ -299,7 +291,6 @@ func (c *Caretaker) PullRequest(ctx context.Context, prNumber int) (PullRequest,
 	variables := map[string]any{
 		"owner":      githubv4.String(c.Owner),
 		"name":       githubv4.String(c.Repo),
-		"statusName": githubv4.String(c.TargetStatusName),
 		"pullNumber": githubv4.Int(prNumber),
 	}
 
@@ -326,28 +317,7 @@ func (c *Caretaker) User(ctx context.Context, name string) (User, error) {
 	return user.User, nil
 }
 
-func (c *Caretaker) Issue(ctx context.Context, issueNumber int) (Issue, error) {
-	var queryPullRequests struct {
-		Repository struct {
-			Issue Issue `graphql:"issue(number: $issueNumber)"`
-		} `graphql:"repository(owner: $owner, name: $name)"`
-	}
-
-	variables := map[string]any{
-		"owner":      githubv4.String(c.Owner),
-		"name":       githubv4.String(c.Repo),
-		"statusName": githubv4.String(c.TargetStatusName),
-		"pullNumber": githubv4.Int(issueNumber),
-	}
-
-	if err := c.gclient.Query(ctx, &queryPullRequests, variables); err != nil {
-		return Issue{}, fmt.Errorf("failed to get issue: %w", err)
-	}
-
-	return queryPullRequests.Repository.Issue, nil
-}
-
-func (c *Caretaker) UpdateIssueStatus(ctx context.Context, issue Issue) error {
+func (c *Caretaker) UpdateIssueStatus(ctx context.Context, issue Issue, statusName githubv4.String) error {
 	if issue.Closed {
 		c.log.Log("issue already closed, skip")
 
@@ -371,21 +341,30 @@ func (c *Caretaker) UpdateIssueStatus(ctx context.Context, issue Issue) error {
 
 	project := issue.ProjectsV2.Nodes[0]
 
-	if l := len(project.Field.ProjectV2SingleSelectField.Options); l != 1 {
-		return fmt.Errorf("incorrect number of options found for name %s; want 1; got: %d", c.TargetStatusName, l)
-	}
-
 	c.log.Debug("associated issue number %d and title %s on project: %s", issue.Number, issue.Title, project.Title)
 
 	projectItem := issue.ProjectItems.Nodes[0]
-	option := project.Field.ProjectV2SingleSelectField.Options[0]
+
+	var option githubv4.String
+
+	for _, o := range project.Field.ProjectV2SingleSelectField.Options {
+		if o.Name == statusName {
+			option = o.ID
+
+			break
+		}
+	}
+
+	if option == "" {
+		return fmt.Errorf("status with name %s not found amongst available statuses", statusName)
+	}
 
 	input := githubv4.UpdateProjectV2ItemFieldValueInput{
 		ProjectID: githubv4.NewString(project.ID),
 		ItemID:    githubv4.NewString(projectItem.ID),
 		FieldID:   githubv4.NewString(project.Field.ProjectV2SingleSelectField.ID),
 		Value: githubv4.ProjectV2FieldValue{
-			SingleSelectOptionID: githubv4.NewString(option.ID),
+			SingleSelectOptionID: githubv4.NewString(option),
 		},
 	}
 
@@ -449,9 +428,8 @@ func (c *Caretaker) queryLabelID(ctx context.Context, label string) (githubv4.ID
 
 func (c *Caretaker) assignToOrganization(ctx context.Context, issue *Issue, projectNumber int) error {
 	projectValues := map[string]any{
-		"login":      githubv4.String(c.Owner),
-		"number":     githubv4.Int(projectNumber),
-		"statusName": githubv4.String(""),
+		"login":  githubv4.String(c.Owner),
+		"number": githubv4.Int(projectNumber),
 	}
 
 	var projectQuery struct {

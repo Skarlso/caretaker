@@ -10,11 +10,14 @@ import (
 	"github.com/skarlso/caretaker/pkg/client"
 )
 
+const Help = "/help"
+
 type Command interface {
 	// Execute runs the respective comment. The ID can be obtained through GitHub action's context: github.
 	// cmd can be used for further parsing arguments to the command.
 	// GraphQL object https://docs.github.com/en/graphql/reference/objects#issuecomment
 	Execute(ctx context.Context, pullNumber int, actor string, args ...string) error
+	Help() string
 }
 
 type Slash struct {
@@ -54,18 +57,22 @@ func (s *Slash) Run(ctx context.Context, pullNumber int, actor, commentID, comme
 			seen = true
 		}
 
+		var args []string
+
+		if i := strings.Index(cmd, " "); i > -1 {
+			// skip the first one as that's the command
+			arg := cmd[i+1:]
+			args = strings.Split(arg, ",")
+			// command is whatever we have until the first space
+			cmd = cmd[0:i]
+		}
+
 		handler, ok := s.supportedCommands[cmd]
 		if !ok {
 			return fmt.Errorf("command handler not registered for command %s", cmd)
 		}
 
-		var args string
-		if i := strings.Index(cmd, " "); i > 0 {
-			args = cmd[i+1:]
-		}
-
-		// skip the first one as that's the command
-		if err := handler.Execute(ctx, pullNumber, actor, strings.Split(args, ",")...); err != nil {
+		if err := handler.Execute(ctx, pullNumber, actor, args...); err != nil {
 			return fmt.Errorf("failed to run command: %w", err)
 		}
 	}
@@ -77,4 +84,25 @@ func (s *Slash) Run(ctx context.Context, pullNumber int, actor, commentID, comme
 
 	// Once we are done, we approve.
 	return nil
+}
+
+func (s *Slash) Execute(ctx context.Context, pullNumber int, actor string, _ ...string) error {
+	helpComment := []byte(fmt.Sprintf(`@%s: The following commands are available:
+`, actor))
+
+	for _, cmd := range s.supportedCommands {
+		helpComment = append(helpComment, []byte(cmd.Help())...)
+		helpComment = append(helpComment, []byte("\n")...)
+	}
+
+	pr, err := s.client.PullRequest(ctx, pullNumber)
+	if err != nil {
+		return fmt.Errorf("failed to fetch pull request with number %d to leave comment on: %w", pullNumber, err)
+	}
+
+	return s.client.LeaveComment(ctx, pr.ID, string(helpComment))
+}
+
+func (s *Slash) Help() string {
+	return "- `/help` returns all available commands"
 }

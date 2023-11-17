@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/shurcooL/githubv4"
 	"github.com/skarlso/caretaker/pkg/client"
 	"github.com/skarlso/caretaker/pkg/logger"
 )
@@ -44,7 +45,7 @@ func (c *Updater) PullRequestUpdated(ctx context.Context) error {
 
 	for _, issue := range pr.ClosingIssuesReferences.Nodes {
 		issue := issue
-		if err := c.client.UpdateIssueStatus(ctx, issue); err != nil {
+		if err := c.client.UpdateIssueStatus(ctx, issue, githubv4.String(c.StatusName)); err != nil {
 			return fmt.Errorf("failed to mutate issue: %w", err)
 		}
 

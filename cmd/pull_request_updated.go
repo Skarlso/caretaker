@@ -49,10 +49,8 @@ func pullRequestUpdatedRunE(rootArgs *rootArgsStruct) func(cmd *cobra.Command, a
 		}
 
 		client := client.NewCaretaker(log, gclient, client.Options{
-			Repo:             rootArgs.repo,
-			Owner:            rootArgs.owner,
-			TargetStatusName: rootArgs.statusOption,
-			ScanLabel:        rootArgs.pullRequestProcessedLabel,
+			Repo:  rootArgs.repo,
+			Owner: rootArgs.owner,
 		})
 		updater := pullrequestupdated.NewUpdater(log, client, pullrequestupdated.Options{
 			PullRequestNumber: prNumber,

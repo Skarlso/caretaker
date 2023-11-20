@@ -45,9 +45,21 @@ func (c *Updater) PullRequestUpdated(ctx context.Context) error {
 		return nil
 	}
 
+	var updated bool
+
 	for _, issue := range pr.ClosingIssuesReferences.Nodes {
 		issue := issue
-		if err := c.client.UpdateIssueStatus(ctx, issue, githubv4.String(c.StatusName)); err != nil {
+
+		// issue is not part of a project, skip it
+		if issue.ProjectItems.TotalCount == 0 {
+			c.log.Log("issue with number %d is not part of any project, skipping", issue.Number)
+
+			continue
+		}
+
+		// if any of its project items is not in the desired state, we'll update it.
+		updated, err = c.client.UpdateIssueStatus(ctx, issue, githubv4.String(c.StatusName))
+		if err != nil {
 			return fmt.Errorf("failed to mutate issue: %w", err)
 		}
 
@@ -58,7 +70,8 @@ func (c *Updater) PullRequestUpdated(ctx context.Context) error {
 		return fmt.Errorf("failed to remove label from entity: %w", err)
 	}
 
-	if !c.NoComment {
+	// if there was no update performed, don't leave a comment
+	if !c.NoComment && updated {
 		if err := c.client.LeaveComment(
 			ctx,
 			pr.ID,

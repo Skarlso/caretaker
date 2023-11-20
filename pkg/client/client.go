@@ -41,7 +41,13 @@ type PullRequest struct {
 
 // ProjectV2Item https://docs.github.com/en/graphql/reference/objects#projectv2item
 type ProjectV2Item struct {
-	ID githubv4.String
+	ID               githubv4.String
+	Project          ProjectV2
+	FieldValueByName struct {
+		ProjectV2SingleSelectField struct {
+			Name githubv4.String
+		} `graphql:"... on ProjectV2ItemFieldSingleSelectValue"`
+	} `graphql:"fieldValueByName(name: \"Status\")"`
 }
 
 // Issue https://docs.github.com/en/graphql/reference/objects#issue
@@ -52,11 +58,11 @@ type Issue struct {
 	Number     githubv4.Int
 	ProjectsV2 struct {
 		Nodes []ProjectV2
-	} `graphql:"projectsV2(first: 1)"` // we assume an issue is only part of a single project
+	} `graphql:"projectsV2(first: 10)"`
 	ProjectItems struct {
 		TotalCount githubv4.Int
 		Nodes      []ProjectV2Item
-	} `graphql:"projectItems(first: 1)"` // there should be only one card associated with this issue
+	} `graphql:"projectItems(first: 10)"`
 }
 
 // Comment https://docs.github.com/en/graphql/reference/objects#issuecomment
@@ -110,7 +116,7 @@ type Client interface {
 	LeaveComment(ctx context.Context, prID githubv4.ID, comment string) error
 	PullRequests(ctx context.Context) ([]PullRequest, error)
 	PullRequest(ctx context.Context, prNumber int) (PullRequest, error)
-	UpdateIssueStatus(ctx context.Context, issue Issue, statusName githubv4.String) error
+	UpdateIssueStatus(ctx context.Context, issue Issue, statusName githubv4.String) (bool, error)
 	User(ctx context.Context, username string) (User, error)
 }
 
@@ -317,17 +323,11 @@ func (c *Caretaker) User(ctx context.Context, name string) (User, error) {
 	return user.User, nil
 }
 
-func (c *Caretaker) UpdateIssueStatus(ctx context.Context, issue Issue, statusName githubv4.String) error {
+func (c *Caretaker) UpdateIssueStatus(ctx context.Context, issue Issue, statusName githubv4.String) (bool, error) {
 	if issue.Closed {
 		c.log.Log("issue already closed, skip")
 
-		return nil
-	}
-
-	if len(issue.ProjectsV2.Nodes) != 1 {
-		c.log.Log("issues that are attached to more than one project are not supported ATM")
-
-		return nil
+		return false, nil
 	}
 
 	// mutateIssueStatus sets the Status of an Issue to the desired option.
@@ -339,40 +339,70 @@ func (c *Caretaker) UpdateIssueStatus(ctx context.Context, issue Issue, statusNa
 		} `graphql:"updateProjectV2ItemFieldValue(input: $input)"`
 	}
 
-	project := issue.ProjectsV2.Nodes[0]
+	var updated bool
 
-	c.log.Debug("associated issue number %d and title %s on project: %s", issue.Number, issue.Title, project.Title)
+	for _, project := range issue.ProjectsV2.Nodes {
+		c.log.Debug("associated issue number %d and title %s on project: %s", issue.Number, issue.Title, project.Title)
 
-	projectItem := issue.ProjectItems.Nodes[0]
+		var projectItem ProjectV2Item
 
-	var option githubv4.String
+		// Select the right project item for the project we are checking.
+		for _, i := range issue.ProjectItems.Nodes {
+			if i.Project.ID == project.ID {
+				projectItem = i
 
-	for _, o := range project.Field.ProjectV2SingleSelectField.Options {
-		if o.Name == statusName {
-			option = o.ID
-
-			break
+				break
+			}
 		}
+
+		// If there are no project items for this project that belong to this issue, it means
+		// that the issue is not assigned to this project.
+		if projectItem.ID == "" {
+			c.log.Log("ProjectItem not found for project with number %d; skipping", project.Number)
+
+			continue
+		}
+
+		if projectItem.FieldValueByName.ProjectV2SingleSelectField.Name == statusName {
+			c.log.Log("ProjectItem already in request status, skipping mutation")
+
+			continue
+		}
+
+		var option githubv4.String
+
+		for _, o := range project.Field.ProjectV2SingleSelectField.Options {
+			if o.Name == statusName {
+				option = o.ID
+
+				break
+			}
+		}
+
+		// This project might not have the same statuses configured. We skip setting it in that case.
+		if option == "" {
+			c.log.Log("status with name %s not found for project %d, skipping setting it", statusName, project.Number)
+
+			continue
+		}
+
+		input := githubv4.UpdateProjectV2ItemFieldValueInput{
+			ProjectID: githubv4.NewString(project.ID),
+			ItemID:    githubv4.NewString(projectItem.ID),
+			FieldID:   githubv4.NewString(project.Field.ProjectV2SingleSelectField.ID),
+			Value: githubv4.ProjectV2FieldValue{
+				SingleSelectOptionID: githubv4.NewString(option),
+			},
+		}
+
+		if err := c.gclient.Mutate(ctx, &mutateIssueStatus, input, nil); err != nil {
+			return false, fmt.Errorf("failed to mutate issue: %w", err)
+		}
+
+		updated = true
 	}
 
-	if option == "" {
-		return fmt.Errorf("status with name %s not found amongst available statuses", statusName)
-	}
-
-	input := githubv4.UpdateProjectV2ItemFieldValueInput{
-		ProjectID: githubv4.NewString(project.ID),
-		ItemID:    githubv4.NewString(projectItem.ID),
-		FieldID:   githubv4.NewString(project.Field.ProjectV2SingleSelectField.ID),
-		Value: githubv4.ProjectV2FieldValue{
-			SingleSelectOptionID: githubv4.NewString(option),
-		},
-	}
-
-	if err := c.gclient.Mutate(ctx, &mutateIssueStatus, input, nil); err != nil {
-		return fmt.Errorf("failed to mutate issue: %w", err)
-	}
-
-	return nil
+	return updated, nil
 }
 
 func (c *Caretaker) LeaveComment(ctx context.Context, prID githubv4.ID, comment string) error {

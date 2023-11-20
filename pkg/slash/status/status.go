@@ -49,9 +49,8 @@ func (h *Handler) Execute(ctx context.Context, pullNumber int, _ string, args ..
 		return fmt.Errorf("argument named \"status\" not found in arguments list: %s", args)
 	}
 
-	// assign user to all related issues
 	for _, issue := range pr.ClosingIssuesReferences.Nodes {
-		if err := h.client.UpdateIssueStatus(ctx, issue, githubv4.String(status)); err != nil {
+		if _, err := h.client.UpdateIssueStatus(ctx, issue, githubv4.String(status)); err != nil {
 			return fmt.Errorf("failed to update issue into desired state %s: %w", status, err)
 		}
 	}

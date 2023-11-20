@@ -66,11 +66,14 @@ loop:
 
 		for _, issue := range pr.ClosingIssuesReferences.Nodes {
 			issue := issue
-			if err := c.client.UpdateIssueStatus(ctx, issue, githubv4.String(c.StatusName)); err != nil {
+			updated, err := c.client.UpdateIssueStatus(ctx, issue, githubv4.String(c.StatusName))
+			if err != nil {
 				return fmt.Errorf("failed to mutate issue: %w", err)
 			}
 
-			c.log.Debug("issue number %d successfully mutated", issue.Number)
+			if updated {
+				c.log.Debug("issue number %d successfully mutated", issue.Number)
+			}
 		}
 
 		if err := c.client.AddLabel(ctx, c.ScanLabel, pr.ID); err != nil {

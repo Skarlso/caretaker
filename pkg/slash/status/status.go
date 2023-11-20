@@ -1,4 +1,4 @@
-package review
+package status
 
 import (
 	"context"
@@ -12,9 +12,7 @@ import (
 
 const (
 	// Command defines the command this handler understands.
-	Command = "/review"
-	Status  = "In Review"
-
+	Command   = "/status"
 	statusKey = "status"
 )
 
@@ -37,17 +35,18 @@ func (h *Handler) Execute(ctx context.Context, pullNumber int, _ string, args ..
 		return fmt.Errorf("failed to get related pull request: %w", err)
 	}
 
-	status := Status
+	if len(args) == 0 {
+		return fmt.Errorf("status name arguments is required, none was given")
+	}
 
-	if len(args) > 0 {
-		argMap, err := slash.ConvertArgs(args...)
-		if err != nil {
-			return fmt.Errorf("failed to convert arguments to command: %w", err)
-		}
+	argMap, err := slash.ConvertArgs(args...)
+	if err != nil {
+		return fmt.Errorf("failed to convert arguments to command: %w", err)
+	}
 
-		if v, ok := argMap[statusKey]; ok {
-			status = v
-		}
+	status, ok := argMap[statusKey]
+	if !ok {
+		return fmt.Errorf("argument named \"status\" not found in arguments list: %s", args)
 	}
 
 	// assign user to all related issues

@@ -10,6 +10,8 @@ The following automation options are available at the moment of writing.
 |:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Since this action can modify your organization's Project board and issue status it is recommended that you restrict access to it to organization members and maintainers. |
 
+For example, don't allow this action to be executed on Forks of the repository.
+
 ## Periodic pull request scanning
 
 Caretaker can track pull request activity. It does that by checking the last activity on the pull request.
@@ -46,7 +48,7 @@ jobs:
 
 If the owner of the repository is an organization, please set `isOrganization: true` in `with`.
 
-| :boom: Note                                                                                                                                                                                                |
+| :bulb: Note                                                                                                                                                                                                |
 |:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Caretaker comments back into a PR if it finished processing it. In order to avoid triggering the flip back flow, either ignore the actor or set up the flip flow with only pulling and submitting reviews. |
 
@@ -132,16 +134,21 @@ In order to trigger a slash command, leave a comment on a pull request like this
 
 ```
 /assign
-/review
+/status
 /help
 ```
 
 Multiple commands can be defined using `\n` delimiter.
 
+Caretaker will acknowledge any comment that has a slash command in it that it recognised. Then, once it's done, it will
+react with a thumbs up. Like this:
+
+![reaction](./img/reactions.png)
+
 If a command requires or takes arguments, those can be provided via a space separated list.
 
 ```
-/review status=In Progress,v=1 
+/status status=In Progress,v=1 
 ```
 
 To set up Slash commands configure a GitHub action like this:

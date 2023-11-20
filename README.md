@@ -12,6 +12,10 @@ The following automation options are available at the moment of writing.
 
 For example, don't allow this action to be executed on Forks of the repository.
 
+| :bulb: NOTE                                                                     |
+|:--------------------------------------------------------------------------------|
+| Caretaker allows for a maximum of 10 projects being assigned to a single Issue. |
+
 ## Periodic pull request scanning
 
 Caretaker can track pull request activity. It does that by checking the last activity on the pull request.

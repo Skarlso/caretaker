@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/shurcooL/githubv4"
+
 	"github.com/skarlso/caretaker/pkg/client"
 	"github.com/skarlso/caretaker/pkg/logger"
 )
@@ -13,6 +14,7 @@ type Options struct {
 	PullRequestNumber int
 	StatusName        string
 	ScanLabel         string
+	NoComment         bool
 }
 
 type Updater struct {
@@ -56,13 +58,15 @@ func (c *Updater) PullRequestUpdated(ctx context.Context) error {
 		return fmt.Errorf("failed to remove label from entity: %w", err)
 	}
 
-	if err := c.client.LeaveComment(
-		ctx,
-		pr.ID,
-		fmt.Sprintf("Update detected, any open associated issue has been transfer to %s.", c.StatusName),
-	); err != nil {
-		// we continue as everything else seemed to have worked and a comment shouldn't stop the flow
-		c.log.Log("failed to leave comment on pull request %d with error: %s", pr.Number, err)
+	if !c.NoComment {
+		if err := c.client.LeaveComment(
+			ctx,
+			pr.ID,
+			fmt.Sprintf("Update detected, any open associated issue has been transfer to %s.", c.StatusName),
+		); err != nil {
+			// we continue as everything else seemed to have worked and a comment shouldn't stop the flow
+			c.log.Log("failed to leave comment on pull request %d with error: %s", pr.Number, err)
+		}
 	}
 
 	return nil

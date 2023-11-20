@@ -76,7 +76,7 @@ jobs:
       - name: flip any related issues
         uses: skarlso/caretaker@v0.1.1
         with:
-          command: move-issue
+          command: pull-request-updated
           owner: skarlso
           repo: test
           token: ${{ secrets.PROJECT_TOKEN }}

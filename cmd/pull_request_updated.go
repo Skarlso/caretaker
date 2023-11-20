@@ -56,6 +56,7 @@ func pullRequestUpdatedRunE(rootArgs *rootArgsStruct) func(cmd *cobra.Command, a
 			PullRequestNumber: prNumber,
 			StatusName:        rootArgs.statusOption,
 			ScanLabel:         rootArgs.pullRequestProcessedLabel,
+			NoComment:         rootArgs.disableComments != "",
 		})
 
 		return updater.PullRequestUpdated(ctx)

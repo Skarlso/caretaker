@@ -152,7 +152,7 @@ react with a thumbs up. Like this:
 If a command requires or takes arguments, those can be provided via a space separated list.
 
 ```
-/status status=In Progress,v=1 
+/status status=In Progress,extra=value
 ```
 
 To set up Slash commands configure a GitHub action like this:

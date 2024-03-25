@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/shurcooL/githubv4"
 
@@ -50,6 +51,18 @@ type ProjectV2Item struct {
 	} `graphql:"fieldValueByName(name: \"Status\")"`
 }
 
+// ProjectV2ItemWithIssueContent https://docs.github.com/en/graphql/reference/objects#projectv2item
+type ProjectV2ItemWithIssueContent struct {
+	ID               githubv4.String
+	Project          ProjectV2
+	Content          Issue `graphql:"... on Issue"`
+	FieldValueByName struct {
+		ProjectV2SingleSelectField struct {
+			Name githubv4.String
+		} `graphql:"... on ProjectV2ItemFieldSingleSelectValue"`
+	} `graphql:"fieldValueByName(name: \"Status\")"`
+}
+
 // Issue https://docs.github.com/en/graphql/reference/objects#issue
 type Issue struct {
 	ID         githubv4.ID
@@ -62,7 +75,7 @@ type Issue struct {
 	ProjectItems struct {
 		TotalCount githubv4.Int
 		Nodes      []ProjectV2Item
-	} `graphql:"projectItems(first: 10)"`
+	} `graphql:"projectItems(first: 20)"`
 }
 
 // Comment https://docs.github.com/en/graphql/reference/objects#issuecomment
@@ -105,6 +118,7 @@ type GraphQLClient interface {
 }
 
 // Client defines the capabilities of Caretaker.
+// TODO: Stop exposing the githubv4 types in the API. It should be strings and ints.
 //
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/client.go . Client
 type Client interface {
@@ -116,6 +130,8 @@ type Client interface {
 	LeaveComment(ctx context.Context, prID githubv4.ID, comment string) error
 	PullRequests(ctx context.Context) ([]PullRequest, error)
 	PullRequest(ctx context.Context, prNumber int) (PullRequest, error)
+	Issue(ctx context.Context, issueNumber int) (Issue, error)
+	ProjectItems(ctx context.Context, projectNumber int, status string, interval time.Duration) ([]ProjectV2ItemWithIssueContent, error)
 	UpdateIssueStatus(ctx context.Context, issue Issue, statusName githubv4.String) (bool, error)
 	User(ctx context.Context, username string) (User, error)
 }
@@ -305,6 +321,54 @@ func (c *Caretaker) PullRequest(ctx context.Context, prNumber int) (PullRequest,
 	}
 
 	return queryPullRequests.Repository.PullRequest, nil
+}
+
+func (c *Caretaker) Issue(ctx context.Context, issueNumber int) (Issue, error) {
+	var queryIssue struct {
+		Repository struct {
+			Issue Issue `graphql:"issue(number: $number)"`
+		} `graphql:"repository(owner: $owner, name: $name)"`
+	}
+
+	variables := map[string]any{
+		"owner":  githubv4.String(c.Owner),
+		"name":   githubv4.String(c.Repo),
+		"number": githubv4.Int(issueNumber),
+	}
+
+	if err := c.gclient.Query(ctx, &queryIssue, variables); err != nil {
+		return Issue{}, fmt.Errorf("failed to get issue: %w", err)
+	}
+
+	return queryIssue.Repository.Issue, nil
+}
+
+func (c *Caretaker) ProjectItems(ctx context.Context, projectNumber int, status string, interval time.Duration) ([]ProjectV2ItemWithIssueContent, error) {
+	if c.IsOrganization {
+
+		return nil, nil
+	}
+
+	projectValues := map[string]any{
+		"login":  githubv4.String(c.Owner),
+		"number": githubv4.Int(projectNumber),
+	}
+
+	var projectQuery struct {
+		User struct {
+			ProjectV2 struct {
+				Items struct {
+					Nodes []ProjectV2ItemWithIssueContent
+				} `graphql:"items(first: 50)"`
+			} `graphql:"projectV2(number: $number)"`
+		} `graphql:"user(login: $login)"`
+	}
+
+	if err := c.gclient.Query(ctx, &projectQuery, projectValues); err != nil {
+		return nil, fmt.Errorf("failed to get issue: %w", err)
+	}
+
+	return projectQuery.User.ProjectV2.Items.Nodes, nil
 }
 
 func (c *Caretaker) User(ctx context.Context, name string) (User, error) {

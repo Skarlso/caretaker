@@ -18,12 +18,6 @@ import (
 
 // CreateSlashCommand defines a command that handles comments made by users on objects that Caretaker tracks.
 // These commands run on pull requests and their respective issues.
-// Commands:
-// - help
-// - review
-// - close
-// - create-issue
-// - in-progress.
 // This will create a reaction of a +1 on the comment once it's done.
 func CreateSlashCommand(rootArgs *rootArgsStruct) *cobra.Command {
 	scanCmd := &cobra.Command{
@@ -37,7 +31,7 @@ func CreateSlashCommand(rootArgs *rootArgsStruct) *cobra.Command {
 }
 
 func slashRunE(rootArgs *rootArgsStruct) func(cmd *cobra.Command, args []string) error {
-	return func(cmd *cobra.Command, args []string) error {
+	return func(_ *cobra.Command, _ []string) error {
 		ctx := context.Background()
 		ts := oauth2.StaticTokenSource(
 			&oauth2.Token{AccessToken: rootArgs.token},
@@ -58,10 +52,10 @@ func slashRunE(rootArgs *rootArgsStruct) func(cmd *cobra.Command, args []string)
 		})
 
 		assignHandler := assign.NewHandler(client)
-		reviewHandler := status.NewHandler(client)
+		statusHandler := status.NewHandler(client)
 		s := slash.NewSlashHandler(client)
 		s.RegisterHandler(assign.Command, assignHandler)
-		s.RegisterHandler(status.Command, reviewHandler)
+		s.RegisterHandler(status.Command, statusHandler)
 		s.RegisterHandler(slash.Help, s)
 
 		prNumber, err := strconv.Atoi(rootArgs.pullRequestNumber)

@@ -89,6 +89,20 @@ type FakeClient struct {
 	leaveCommentReturnsOnCall map[int]struct {
 		result1 error
 	}
+	ProjectItemsStub        func(context.Context, int) ([]client.ProjectV2ItemWithIssueContent, error)
+	projectItemsMutex       sync.RWMutex
+	projectItemsArgsForCall []struct {
+		arg1 context.Context
+		arg2 int
+	}
+	projectItemsReturns struct {
+		result1 []client.ProjectV2ItemWithIssueContent
+		result2 error
+	}
+	projectItemsReturnsOnCall map[int]struct {
+		result1 []client.ProjectV2ItemWithIssueContent
+		result2 error
+	}
 	PullRequestStub        func(context.Context, int) (client.PullRequest, error)
 	pullRequestMutex       sync.RWMutex
 	pullRequestArgsForCall []struct {
@@ -542,6 +556,71 @@ func (fake *FakeClient) LeaveCommentReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeClient) ProjectItems(arg1 context.Context, arg2 int) ([]client.ProjectV2ItemWithIssueContent, error) {
+	fake.projectItemsMutex.Lock()
+	ret, specificReturn := fake.projectItemsReturnsOnCall[len(fake.projectItemsArgsForCall)]
+	fake.projectItemsArgsForCall = append(fake.projectItemsArgsForCall, struct {
+		arg1 context.Context
+		arg2 int
+	}{arg1, arg2})
+	stub := fake.ProjectItemsStub
+	fakeReturns := fake.projectItemsReturns
+	fake.recordInvocation("ProjectItems", []interface{}{arg1, arg2})
+	fake.projectItemsMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeClient) ProjectItemsCallCount() int {
+	fake.projectItemsMutex.RLock()
+	defer fake.projectItemsMutex.RUnlock()
+	return len(fake.projectItemsArgsForCall)
+}
+
+func (fake *FakeClient) ProjectItemsCalls(stub func(context.Context, int) ([]client.ProjectV2ItemWithIssueContent, error)) {
+	fake.projectItemsMutex.Lock()
+	defer fake.projectItemsMutex.Unlock()
+	fake.ProjectItemsStub = stub
+}
+
+func (fake *FakeClient) ProjectItemsArgsForCall(i int) (context.Context, int) {
+	fake.projectItemsMutex.RLock()
+	defer fake.projectItemsMutex.RUnlock()
+	argsForCall := fake.projectItemsArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeClient) ProjectItemsReturns(result1 []client.ProjectV2ItemWithIssueContent, result2 error) {
+	fake.projectItemsMutex.Lock()
+	defer fake.projectItemsMutex.Unlock()
+	fake.ProjectItemsStub = nil
+	fake.projectItemsReturns = struct {
+		result1 []client.ProjectV2ItemWithIssueContent
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) ProjectItemsReturnsOnCall(i int, result1 []client.ProjectV2ItemWithIssueContent, result2 error) {
+	fake.projectItemsMutex.Lock()
+	defer fake.projectItemsMutex.Unlock()
+	fake.ProjectItemsStub = nil
+	if fake.projectItemsReturnsOnCall == nil {
+		fake.projectItemsReturnsOnCall = make(map[int]struct {
+			result1 []client.ProjectV2ItemWithIssueContent
+			result2 error
+		})
+	}
+	fake.projectItemsReturnsOnCall[i] = struct {
+		result1 []client.ProjectV2ItemWithIssueContent
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeClient) PullRequest(arg1 context.Context, arg2 int) (client.PullRequest, error) {
 	fake.pullRequestMutex.Lock()
 	ret, specificReturn := fake.pullRequestReturnsOnCall[len(fake.pullRequestArgsForCall)]
@@ -880,6 +959,8 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	defer fake.issueMutex.RUnlock()
 	fake.leaveCommentMutex.RLock()
 	defer fake.leaveCommentMutex.RUnlock()
+	fake.projectItemsMutex.RLock()
+	defer fake.projectItemsMutex.RUnlock()
 	fake.pullRequestMutex.RLock()
 	defer fake.pullRequestMutex.RUnlock()
 	fake.pullRequestsMutex.RLock()

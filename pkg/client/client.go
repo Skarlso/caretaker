@@ -3,7 +3,6 @@ package client
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/shurcooL/githubv4"
 
@@ -53,9 +52,13 @@ type ProjectV2Item struct {
 
 // ProjectV2ItemWithIssueContent https://docs.github.com/en/graphql/reference/objects#projectv2item
 type ProjectV2ItemWithIssueContent struct {
-	ID               githubv4.String
-	Project          ProjectV2
-	Content          Issue `graphql:"... on Issue"`
+	ID        githubv4.String
+	Project   ProjectV2
+	Type      githubv4.String
+	UpdatedAt githubv4.Date
+	Content   struct {
+		Issue Issue `graphql:"... on Issue"`
+	}
 	FieldValueByName struct {
 		ProjectV2SingleSelectField struct {
 			Name githubv4.String
@@ -131,7 +134,10 @@ type Client interface {
 	PullRequests(ctx context.Context) ([]PullRequest, error)
 	PullRequest(ctx context.Context, prNumber int) (PullRequest, error)
 	Issue(ctx context.Context, issueNumber int) (Issue, error)
-	ProjectItems(ctx context.Context, projectNumber int, status string, interval time.Duration) ([]ProjectV2ItemWithIssueContent, error)
+	ProjectItems(
+		ctx context.Context,
+		projectNumber int,
+	) ([]ProjectV2ItemWithIssueContent, error)
 	UpdateIssueStatus(ctx context.Context, issue Issue, statusName githubv4.String) (bool, error)
 	User(ctx context.Context, username string) (User, error)
 }
@@ -343,9 +349,8 @@ func (c *Caretaker) Issue(ctx context.Context, issueNumber int) (Issue, error) {
 	return queryIssue.Repository.Issue, nil
 }
 
-func (c *Caretaker) ProjectItems(ctx context.Context, projectNumber int, status string, interval time.Duration) ([]ProjectV2ItemWithIssueContent, error) {
+func (c *Caretaker) ProjectItems(ctx context.Context, projectNumber int) ([]ProjectV2ItemWithIssueContent, error) {
 	if c.IsOrganization {
-
 		return nil, nil
 	}
 
@@ -359,7 +364,7 @@ func (c *Caretaker) ProjectItems(ctx context.Context, projectNumber int, status 
 			ProjectV2 struct {
 				Items struct {
 					Nodes []ProjectV2ItemWithIssueContent
-				} `graphql:"items(first: 50)"`
+				} `graphql:"items(first: 100)"`
 			} `graphql:"projectV2(number: $number)"`
 		} `graphql:"user(login: $login)"`
 	}

@@ -137,7 +137,8 @@ func CreateRootCommand() *cobra.Command {
 	assignIssueCmd := CreateAssignIssueCommand(rootArgs)
 	slashCommandCmd := CreateSlashCommand(rootArgs)
 	updateIssueCommandCmd := CreateUpdateIssueCommand(rootArgs)
-	rootCmd.AddCommand(scanCmd, pullRequestUpdatedCmd, assignIssueCmd, slashCommandCmd, updateIssueCommandCmd)
+	scanProjectCmd := CreateScanProjectCommand(rootArgs)
+	rootCmd.AddCommand(scanCmd, pullRequestUpdatedCmd, assignIssueCmd, slashCommandCmd, updateIssueCommandCmd, scanProjectCmd)
 
 	return rootCmd
 }

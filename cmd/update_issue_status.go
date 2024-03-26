@@ -9,23 +9,23 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/oauth2"
 
-	"github.com/skarlso/caretaker/pkg/assignissue"
 	"github.com/skarlso/caretaker/pkg/client"
 	"github.com/skarlso/caretaker/pkg/logger"
+	"github.com/skarlso/caretaker/pkg/updateissue"
 )
 
-func CreateAssignIssueCommand(rootArgs *rootArgsStruct) *cobra.Command {
-	createIssueCmd := &cobra.Command{
-		Use:   "assign-issue",
-		Short: "Assigns an issue created in this repository to a specific project.",
+func CreateUpdateIssueCommand(rootArgs *rootArgsStruct) *cobra.Command {
+	updateIssueCmd := &cobra.Command{
+		Use:   "update-issue",
+		Short: "Update an issue's status to a specific status.",
 	}
 
-	createIssueCmd.RunE = assignIssueRunE(rootArgs)
+	updateIssueCmd.RunE = updateIssueRunE(rootArgs)
 
-	return createIssueCmd
+	return updateIssueCmd
 }
 
-func assignIssueRunE(rootArgs *rootArgsStruct) func(cmd *cobra.Command, args []string) error {
+func updateIssueRunE(rootArgs *rootArgsStruct) func(cmd *cobra.Command, args []string) error {
 	return func(_ *cobra.Command, _ []string) error {
 		ctx := context.Background()
 		ts := oauth2.StaticTokenSource(
@@ -40,7 +40,7 @@ func assignIssueRunE(rootArgs *rootArgsStruct) func(cmd *cobra.Command, args []s
 			log = &logger.VerboseLogger{}
 		}
 
-		log.Log("running assign command")
+		log.Log("running update issue status command")
 
 		projectNumber, err := strconv.Atoi(rootArgs.projectNumber)
 		if err != nil {
@@ -52,16 +52,18 @@ func assignIssueRunE(rootArgs *rootArgsStruct) func(cmd *cobra.Command, args []s
 			return fmt.Errorf("failed to convert issue number: %w", err)
 		}
 
-		client := client.NewCaretaker(log, gclient, client.Options{
+		caretaker := client.NewCaretaker(log, gclient, client.Options{
 			Repo:           rootArgs.repo,
 			Owner:          rootArgs.owner,
 			IsOrganization: rootArgs.isOrganization != "",
 		})
-		assigner := assignissue.NewAssignIssueAction(log, client, assignissue.Options{
+		updater := updateissue.NewUpdateIssueAction(log, caretaker, updateissue.Options{
 			ProjectNumber: projectNumber,
 			IssueNumber:   issueNumber,
+			FromStatus:    rootArgs.fromStatusOption,
+			ToStatus:      rootArgs.statusOption,
 		})
 
-		return assigner.Assign(ctx)
+		return updater.Update(ctx)
 	}
 }

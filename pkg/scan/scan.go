@@ -66,7 +66,7 @@ loop:
 
 		for _, issue := range pr.ClosingIssuesReferences.Nodes {
 			issue := issue
-			updated, err := c.client.UpdateIssueStatus(ctx, issue, githubv4.String(c.StatusName))
+			updated, err := c.client.UpdateIssueStatus(ctx, issue, githubv4.String(c.StatusName), -1)
 			if err != nil {
 				return fmt.Errorf("failed to mutate issue: %w", err)
 			}

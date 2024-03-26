@@ -26,6 +26,7 @@ type rootArgsStruct struct {
 	commentBody               string
 	commentID                 string
 	actor                     string
+	fromStatusOption          string
 }
 
 func CreateRootCommand() *cobra.Command {
@@ -86,6 +87,11 @@ func CreateRootCommand() *cobra.Command {
 		"",
 		"--status-option is the status to set an issue to")
 	flag.StringVar(
+		&rootArgs.fromStatusOption,
+		"from-status-option",
+		"",
+		"--from-status-option the status to transition from")
+	flag.StringVar(
 		&rootArgs.pullRequestProcessedLabel,
 		"pull-request-processed-label",
 		"caretaker-processed",
@@ -124,13 +130,14 @@ func CreateRootCommand() *cobra.Command {
 
 	markFlagAsRequired(rootCmd, "token")
 	markFlagAsRequired(rootCmd, "owner")
-	markFlagAsRequired(rootCmd, "repo")
 
 	scanCmd := CreateScanCommand(rootArgs)
 	pullRequestUpdatedCmd := CreatePullRequestUpdatedCommand(rootArgs)
 	assignIssueCmd := CreateAssignIssueCommand(rootArgs)
 	slashCommandCmd := CreateSlashCommand(rootArgs)
-	rootCmd.AddCommand(scanCmd, pullRequestUpdatedCmd, assignIssueCmd, slashCommandCmd)
+	updateIssueCommandCmd := CreateUpdateIssueCommand(rootArgs)
+	scanProjectCmd := CreateScanProjectCommand(rootArgs)
+	rootCmd.AddCommand(scanCmd, pullRequestUpdatedCmd, assignIssueCmd, slashCommandCmd, updateIssueCommandCmd, scanProjectCmd)
 
 	return rootCmd
 }

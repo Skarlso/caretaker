@@ -11,8 +11,7 @@ inputs:
     required: true
     default: ''
   repo:
-    description: 'The repository.'
-    required: true
+    description: 'The repository. In case of the project scanner this is not required.'
     default: ''
   owner:
     description: 'The owner organization or user.'
@@ -40,6 +39,9 @@ inputs:
     default: '0'
   statusOption:
     description: 'The status to set when moving an issue. This should contain any emojis.'
+    required: false
+  fromStatusOption:
+    description: 'Optionally define a from status. If defined, issue will only be moved if the current status equals to from status.'
     required: false
   isOrganization:
     description: 'Indicate whether the user is an organization or a user. False if empty.'
@@ -83,6 +85,7 @@ runs:
     - --pull-request-number=${{ inputs.pullRequestNumber }}
     - --issue-number=${{ inputs.issueNumber }}
     - --status-option=${{ inputs.statusOption }}
+    - --from-status-option=${{ inputs.fromStatusOption }}
     - --is-organization=${{ inputs.isOrganization }}
     - --pull-request-processed-label=${{ inputs.pullRequestProcessedLabel }}
     - --scan-interval=${{ inputs.scanInterval }}

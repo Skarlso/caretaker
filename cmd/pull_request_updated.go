@@ -27,7 +27,7 @@ func CreatePullRequestUpdatedCommand(rootArgs *rootArgsStruct) *cobra.Command {
 }
 
 func pullRequestUpdatedRunE(rootArgs *rootArgsStruct) func(cmd *cobra.Command, args []string) error {
-	return func(cmd *cobra.Command, args []string) error {
+	return func(_ *cobra.Command, _ []string) error {
 		ctx := context.Background()
 		ts := oauth2.StaticTokenSource(
 			&oauth2.Token{AccessToken: rootArgs.token},

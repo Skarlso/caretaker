@@ -50,6 +50,22 @@ type ProjectV2Item struct {
 	} `graphql:"fieldValueByName(name: \"Status\")"`
 }
 
+// ProjectV2ItemWithIssueContent https://docs.github.com/en/graphql/reference/objects#projectv2item
+type ProjectV2ItemWithIssueContent struct {
+	ID        githubv4.String
+	Project   ProjectV2
+	Type      githubv4.String
+	UpdatedAt githubv4.Date
+	Content   struct {
+		Issue Issue `graphql:"... on Issue"`
+	}
+	FieldValueByName struct {
+		ProjectV2SingleSelectField struct {
+			Name githubv4.String
+		} `graphql:"... on ProjectV2ItemFieldSingleSelectValue"`
+	} `graphql:"fieldValueByName(name: \"Status\")"`
+}
+
 // Issue https://docs.github.com/en/graphql/reference/objects#issue
 type Issue struct {
 	ID         githubv4.ID
@@ -62,7 +78,7 @@ type Issue struct {
 	ProjectItems struct {
 		TotalCount githubv4.Int
 		Nodes      []ProjectV2Item
-	} `graphql:"projectItems(first: 10)"`
+	} `graphql:"projectItems(first: 20)"`
 }
 
 // Comment https://docs.github.com/en/graphql/reference/objects#issuecomment
@@ -116,7 +132,12 @@ type Client interface {
 	LeaveComment(ctx context.Context, prID githubv4.ID, comment string) error
 	PullRequests(ctx context.Context) ([]PullRequest, error)
 	PullRequest(ctx context.Context, prNumber int) (PullRequest, error)
-	UpdateIssueStatus(ctx context.Context, issue Issue, statusName githubv4.String) (bool, error)
+	Issue(ctx context.Context, issueNumber int) (Issue, error)
+	ProjectItems(
+		ctx context.Context,
+		projectNumber int,
+	) ([]ProjectV2ItemWithIssueContent, error)
+	UpdateIssueStatus(ctx context.Context, issue Issue, statusName githubv4.String, projectNumber int) (bool, error)
 	User(ctx context.Context, username string) (User, error)
 }
 
@@ -307,6 +328,78 @@ func (c *Caretaker) PullRequest(ctx context.Context, prNumber int) (PullRequest,
 	return queryPullRequests.Repository.PullRequest, nil
 }
 
+func (c *Caretaker) Issue(ctx context.Context, issueNumber int) (Issue, error) {
+	var queryIssue struct {
+		Repository struct {
+			Issue Issue `graphql:"issue(number: $number)"`
+		} `graphql:"repository(owner: $owner, name: $name)"`
+	}
+
+	variables := map[string]any{
+		"owner":  githubv4.String(c.Owner),
+		"name":   githubv4.String(c.Repo),
+		"number": githubv4.Int(issueNumber),
+	}
+
+	if err := c.gclient.Query(ctx, &queryIssue, variables); err != nil {
+		return Issue{}, fmt.Errorf("failed to get issue: %w", err)
+	}
+
+	return queryIssue.Repository.Issue, nil
+}
+
+type projectQueryForUser struct {
+	Entity struct {
+		ProjectV2 struct {
+			Items struct {
+				Nodes []ProjectV2ItemWithIssueContent
+			} `graphql:"items(first: 100)"`
+		} `graphql:"projectV2(number: $number)"`
+	} `graphql:"user(login: $login)"`
+}
+
+func (p *projectQueryForUser) Content() []ProjectV2ItemWithIssueContent {
+	return p.Entity.ProjectV2.Items.Nodes
+}
+
+type projectQueryForOrganization struct {
+	Entity struct {
+		ProjectV2 struct {
+			Items struct {
+				Nodes []ProjectV2ItemWithIssueContent
+			} `graphql:"items(first: 100)"`
+		} `graphql:"projectV2(number: $number)"`
+	} `graphql:"organization(login: $login)"`
+}
+
+func (p *projectQueryForOrganization) Content() []ProjectV2ItemWithIssueContent {
+	return p.Entity.ProjectV2.Items.Nodes
+}
+
+// query unifies the two query types for user and organization.
+type query interface {
+	Content() []ProjectV2ItemWithIssueContent
+}
+
+func (c *Caretaker) ProjectItems(ctx context.Context, projectNumber int) ([]ProjectV2ItemWithIssueContent, error) {
+	var projectQuery query = &projectQueryForUser{}
+
+	if c.IsOrganization {
+		projectQuery = &projectQueryForOrganization{}
+	}
+
+	projectValues := map[string]any{
+		"login":  githubv4.String(c.Owner),
+		"number": githubv4.Int(projectNumber),
+	}
+
+	if err := c.gclient.Query(ctx, projectQuery, projectValues); err != nil {
+		return nil, fmt.Errorf("failed to get issue: %w", err)
+	}
+
+	return projectQuery.Content(), nil
+}
+
 func (c *Caretaker) User(ctx context.Context, name string) (User, error) {
 	var user struct {
 		User User `graphql:"user(login: $name)"`
@@ -323,9 +416,14 @@ func (c *Caretaker) User(ctx context.Context, name string) (User, error) {
 	return user.User, nil
 }
 
-func (c *Caretaker) UpdateIssueStatus(ctx context.Context, issue Issue, statusName githubv4.String) (bool, error) {
+func (c *Caretaker) UpdateIssueStatus(
+	ctx context.Context,
+	issue Issue,
+	statusName githubv4.String,
+	projectNumber int,
+) (bool, error) {
 	if issue.Closed {
-		c.log.Log("issue already closed, skip")
+		c.log.Log("issue %s already closed, skip", issue.Title)
 
 		return false, nil
 	}
@@ -342,7 +440,13 @@ func (c *Caretaker) UpdateIssueStatus(ctx context.Context, issue Issue, statusNa
 	var updated bool
 
 	for _, project := range issue.ProjectsV2.Nodes {
-		c.log.Debug("associated issue number %d and title %s on project: %s", issue.Number, issue.Title, project.Title)
+		c.log.Debug("issue number %d and title %s on project: %s", issue.Number, issue.Title, project.Title)
+
+		if projectNumber > 0 && int(project.Number) != projectNumber {
+			c.log.Log("skipping project number %d as it wasn't requested for update", project.Number)
+
+			continue
+		}
 
 		var projectItem ProjectV2Item
 
@@ -380,6 +484,7 @@ func (c *Caretaker) UpdateIssueStatus(ctx context.Context, issue Issue, statusNa
 		}
 
 		// This project might not have the same statuses configured. We skip setting it in that case.
+		// Note, we are doing this because an issue can be assigned to multiple projects.
 		if option == "" {
 			c.log.Log("status with name %s not found for project %d, skipping setting it", statusName, project.Number)
 
@@ -398,6 +503,8 @@ func (c *Caretaker) UpdateIssueStatus(ctx context.Context, issue Issue, statusNa
 		if err := c.gclient.Mutate(ctx, &mutateIssueStatus, input, nil); err != nil {
 			return false, fmt.Errorf("failed to mutate issue: %w", err)
 		}
+
+		c.log.Log("updated status on issue %s with number %d", issue.Title, issue.Number)
 
 		updated = true
 	}

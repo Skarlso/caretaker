@@ -121,7 +121,6 @@ type GraphQLClient interface {
 }
 
 // Client defines the capabilities of Caretaker.
-// TODO: Stop exposing the githubv4 types in the API. It should be strings and ints.
 //
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/client.go . Client
 type Client interface {
@@ -138,7 +137,7 @@ type Client interface {
 		ctx context.Context,
 		projectNumber int,
 	) ([]ProjectV2ItemWithIssueContent, error)
-	UpdateIssueStatus(ctx context.Context, issue Issue, statusName githubv4.String) (bool, error)
+	UpdateIssueStatus(ctx context.Context, issue Issue, statusName githubv4.String, projectNumber int) (bool, error)
 	User(ctx context.Context, username string) (User, error)
 }
 
@@ -349,9 +348,44 @@ func (c *Caretaker) Issue(ctx context.Context, issueNumber int) (Issue, error) {
 	return queryIssue.Repository.Issue, nil
 }
 
+type projectQueryForUser struct {
+	Entity struct {
+		ProjectV2 struct {
+			Items struct {
+				Nodes []ProjectV2ItemWithIssueContent
+			} `graphql:"items(first: 100)"`
+		} `graphql:"projectV2(number: $number)"`
+	} `graphql:"user(login: $login)"`
+}
+
+func (p *projectQueryForUser) Content() []ProjectV2ItemWithIssueContent {
+	return p.Entity.ProjectV2.Items.Nodes
+}
+
+type projectQueryForOrganization struct {
+	Entity struct {
+		ProjectV2 struct {
+			Items struct {
+				Nodes []ProjectV2ItemWithIssueContent
+			} `graphql:"items(first: 100)"`
+		} `graphql:"projectV2(number: $number)"`
+	} `graphql:"organization(login: $login)"`
+}
+
+func (p *projectQueryForOrganization) Content() []ProjectV2ItemWithIssueContent {
+	return p.Entity.ProjectV2.Items.Nodes
+}
+
+// query unifies the two query types for user and organization.
+type query interface {
+	Content() []ProjectV2ItemWithIssueContent
+}
+
 func (c *Caretaker) ProjectItems(ctx context.Context, projectNumber int) ([]ProjectV2ItemWithIssueContent, error) {
+	var projectQuery query = &projectQueryForUser{}
+
 	if c.IsOrganization {
-		return nil, nil
+		projectQuery = &projectQueryForOrganization{}
 	}
 
 	projectValues := map[string]any{
@@ -359,21 +393,11 @@ func (c *Caretaker) ProjectItems(ctx context.Context, projectNumber int) ([]Proj
 		"number": githubv4.Int(projectNumber),
 	}
 
-	var projectQuery struct {
-		User struct {
-			ProjectV2 struct {
-				Items struct {
-					Nodes []ProjectV2ItemWithIssueContent
-				} `graphql:"items(first: 100)"`
-			} `graphql:"projectV2(number: $number)"`
-		} `graphql:"user(login: $login)"`
-	}
-
-	if err := c.gclient.Query(ctx, &projectQuery, projectValues); err != nil {
+	if err := c.gclient.Query(ctx, projectQuery, projectValues); err != nil {
 		return nil, fmt.Errorf("failed to get issue: %w", err)
 	}
 
-	return projectQuery.User.ProjectV2.Items.Nodes, nil
+	return projectQuery.Content(), nil
 }
 
 func (c *Caretaker) User(ctx context.Context, name string) (User, error) {
@@ -392,9 +416,14 @@ func (c *Caretaker) User(ctx context.Context, name string) (User, error) {
 	return user.User, nil
 }
 
-func (c *Caretaker) UpdateIssueStatus(ctx context.Context, issue Issue, statusName githubv4.String) (bool, error) {
+func (c *Caretaker) UpdateIssueStatus(
+	ctx context.Context,
+	issue Issue,
+	statusName githubv4.String,
+	projectNumber int,
+) (bool, error) {
 	if issue.Closed {
-		c.log.Log("issue already closed, skip")
+		c.log.Log("issue %s already closed, skip", issue.Title)
 
 		return false, nil
 	}
@@ -411,7 +440,13 @@ func (c *Caretaker) UpdateIssueStatus(ctx context.Context, issue Issue, statusNa
 	var updated bool
 
 	for _, project := range issue.ProjectsV2.Nodes {
-		c.log.Debug("associated issue number %d and title %s on project: %s", issue.Number, issue.Title, project.Title)
+		c.log.Debug("issue number %d and title %s on project: %s", issue.Number, issue.Title, project.Title)
+
+		if projectNumber > 0 && int(project.Number) != projectNumber {
+			c.log.Log("skipping project number %d as it wasn't requested for update", project.Number)
+
+			continue
+		}
 
 		var projectItem ProjectV2Item
 
@@ -449,6 +484,7 @@ func (c *Caretaker) UpdateIssueStatus(ctx context.Context, issue Issue, statusNa
 		}
 
 		// This project might not have the same statuses configured. We skip setting it in that case.
+		// Note, we are doing this because an issue can be assigned to multiple projects.
 		if option == "" {
 			c.log.Log("status with name %s not found for project %d, skipping setting it", statusName, project.Number)
 
@@ -467,6 +503,8 @@ func (c *Caretaker) UpdateIssueStatus(ctx context.Context, issue Issue, statusNa
 		if err := c.gclient.Mutate(ctx, &mutateIssueStatus, input, nil); err != nil {
 			return false, fmt.Errorf("failed to mutate issue: %w", err)
 		}
+
+		c.log.Log("updated status on issue %s with number %d", issue.Title, issue.Number)
 
 		updated = true
 	}

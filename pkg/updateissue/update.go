@@ -69,7 +69,7 @@ func (c *Assigner) Update(ctx context.Context) error {
 		return nil
 	}
 
-	if _, err := c.client.UpdateIssueStatus(ctx, issue, githubv4.String(c.ToStatus)); err != nil {
+	if _, err := c.client.UpdateIssueStatus(ctx, issue, githubv4.String(c.ToStatus), c.ProjectNumber); err != nil {
 		return fmt.Errorf("failed to update issue with number %d to status %s: %w", c.IssueNumber, c.ToStatus, err)
 	}
 

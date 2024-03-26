@@ -11,8 +11,7 @@ inputs:
     required: true
     default: ''
   repo:
-    description: 'The repository.'
-    required: true
+    description: 'The repository. In case of the project scanner this is not required.'
     default: ''
   owner:
     description: 'The owner organization or user.'

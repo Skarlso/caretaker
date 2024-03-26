@@ -2,6 +2,7 @@ package status
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/shurcooL/githubv4"
@@ -36,7 +37,7 @@ func (h *Handler) Execute(ctx context.Context, pullNumber int, _ string, args ..
 	}
 
 	if len(args) == 0 {
-		return fmt.Errorf("status name arguments is required, none was given")
+		return errors.New("status name arguments is required, none was given")
 	}
 
 	argMap, err := slash.ConvertArgs(args...)
@@ -50,7 +51,7 @@ func (h *Handler) Execute(ctx context.Context, pullNumber int, _ string, args ..
 	}
 
 	for _, issue := range pr.ClosingIssuesReferences.Nodes {
-		if _, err := h.client.UpdateIssueStatus(ctx, issue, githubv4.String(status)); err != nil {
+		if _, err := h.client.UpdateIssueStatus(ctx, issue, githubv4.String(status), -1); err != nil {
 			return fmt.Errorf("failed to update issue into desired state %s: %w", status, err)
 		}
 	}

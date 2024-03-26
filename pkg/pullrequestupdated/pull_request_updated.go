@@ -58,7 +58,7 @@ func (c *Updater) PullRequestUpdated(ctx context.Context) error {
 		}
 
 		// if any of its project items is not in the desired state, we'll update it.
-		updated, err = c.client.UpdateIssueStatus(ctx, issue, githubv4.String(c.StatusName))
+		updated, err = c.client.UpdateIssueStatus(ctx, issue, githubv4.String(c.StatusName), -1)
 		if err != nil {
 			return fmt.Errorf("failed to mutate issue: %w", err)
 		}

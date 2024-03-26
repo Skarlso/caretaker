@@ -130,7 +130,6 @@ func CreateRootCommand() *cobra.Command {
 
 	markFlagAsRequired(rootCmd, "token")
 	markFlagAsRequired(rootCmd, "owner")
-	markFlagAsRequired(rootCmd, "repo")
 
 	scanCmd := CreateScanCommand(rootArgs)
 	pullRequestUpdatedCmd := CreatePullRequestUpdatedCommand(rootArgs)

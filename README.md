@@ -64,6 +64,40 @@ Caretaker checks for a specific label to be present on the Pull Request it alrea
 This label can be defined via `with: pullRequestProcessedLabel`. This label is _deleted_ during
 [Automatic Issue back-flipping on pull request activity](#automatic-issue-back-flipping-on-pull-request-activity).
 
+## Scanning projects
+
+Caretaker can scan projects for issues that are sitting in a column (with a specific status) for a while now.
+It will take those issues and move them from a source column (status) into a target column (status).
+
+To use it set the following action:
+
+```yaml
+name: Scan project board
+
+on:
+  schedule:
+    - cron:  '0 1 * * *'
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: scan project
+        uses: skarlso/caretaker@v2
+        with:
+          command: scan-project
+          owner: skarlso
+          projectNumber: 2
+          scanInterval: 24h
+          token: ${{ secrets.PROJECT_TOKEN }}
+          statusOption: Closed # this needs to be an option you want the issue to land in
+          fromStatusOption: Done
+```
+
 ## Automatic Issue back-flipping on pull request activity
 
 With the following action, Caretaker can flip-back issues into a desired state upon any activity on a pull request.

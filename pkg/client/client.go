@@ -5,9 +5,12 @@ import (
 	"fmt"
 
 	"github.com/shurcooL/githubv4"
+	"github.com/shurcooL/graphql"
 
 	"github.com/skarlso/caretaker/pkg/logger"
 )
+
+const itemPerPage = 100
 
 // Repository https://docs.github.com/en/graphql/reference/objects#repository
 type Repository struct {
@@ -348,12 +351,18 @@ func (c *Caretaker) Issue(ctx context.Context, issueNumber int) (Issue, error) {
 	return queryIssue.Repository.Issue, nil
 }
 
+type PageInfo struct {
+	EndCursor   graphql.String
+	HasNextPage graphql.Boolean
+}
+
 type projectQueryForUser struct {
 	Entity struct {
 		ProjectV2 struct {
 			Items struct {
-				Nodes []ProjectV2ItemWithIssueContent
-			} `graphql:"items(first: 100)"`
+				Nodes    []ProjectV2ItemWithIssueContent
+				PageInfo PageInfo
+			} `graphql:"items(first: $first, after: $after)"`
 		} `graphql:"projectV2(number: $number)"`
 	} `graphql:"user(login: $login)"`
 }
@@ -362,11 +371,16 @@ func (p *projectQueryForUser) Content() []ProjectV2ItemWithIssueContent {
 	return p.Entity.ProjectV2.Items.Nodes
 }
 
+func (p *projectQueryForUser) PageInfo() PageInfo {
+	return p.Entity.ProjectV2.Items.PageInfo
+}
+
 type projectQueryForOrganization struct {
 	Entity struct {
 		ProjectV2 struct {
 			Items struct {
-				Nodes []ProjectV2ItemWithIssueContent
+				Nodes    []ProjectV2ItemWithIssueContent
+				PageInfo PageInfo
 			} `graphql:"items(first: 100)"`
 		} `graphql:"projectV2(number: $number)"`
 	} `graphql:"organization(login: $login)"`
@@ -376,9 +390,14 @@ func (p *projectQueryForOrganization) Content() []ProjectV2ItemWithIssueContent 
 	return p.Entity.ProjectV2.Items.Nodes
 }
 
+func (p *projectQueryForOrganization) PageInfo() PageInfo {
+	return p.Entity.ProjectV2.Items.PageInfo
+}
+
 // query unifies the two query types for user and organization.
 type query interface {
 	Content() []ProjectV2ItemWithIssueContent
+	PageInfo() PageInfo
 }
 
 func (c *Caretaker) ProjectItems(ctx context.Context, projectNumber int) ([]ProjectV2ItemWithIssueContent, error) {
@@ -391,13 +410,27 @@ func (c *Caretaker) ProjectItems(ctx context.Context, projectNumber int) ([]Proj
 	projectValues := map[string]any{
 		"login":  githubv4.String(c.Owner),
 		"number": githubv4.Int(projectNumber),
+		"first":  graphql.Int(itemPerPage),
+		"after":  (*graphql.String)(nil),
 	}
 
-	if err := c.gclient.Query(ctx, projectQuery, projectValues); err != nil {
-		return nil, fmt.Errorf("failed to get issue: %w", err)
+	var result []ProjectV2ItemWithIssueContent
+
+	for {
+		if err := c.gclient.Query(ctx, projectQuery, projectValues); err != nil {
+			return nil, fmt.Errorf("failed to get issue: %w", err)
+		}
+
+		result = append(result, projectQuery.Content()...)
+
+		if !projectQuery.PageInfo().HasNextPage {
+			break
+		}
+
+		projectValues["after"] = projectQuery.PageInfo().EndCursor
 	}
 
-	return projectQuery.Content(), nil
+	return result, nil
 }
 
 func (c *Caretaker) User(ctx context.Context, name string) (User, error) {

@@ -143,12 +143,13 @@ type FakeClient struct {
 	removeLabelReturnsOnCall map[int]struct {
 		result1 error
 	}
-	UpdateIssueStatusStub        func(context.Context, client.Issue, githubv4.String) (bool, error)
+	UpdateIssueStatusStub        func(context.Context, client.Issue, githubv4.String, int) (bool, error)
 	updateIssueStatusMutex       sync.RWMutex
 	updateIssueStatusArgsForCall []struct {
 		arg1 context.Context
 		arg2 client.Issue
 		arg3 githubv4.String
+		arg4 int
 	}
 	updateIssueStatusReturns struct {
 		result1 bool
@@ -813,20 +814,21 @@ func (fake *FakeClient) RemoveLabelReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeClient) UpdateIssueStatus(arg1 context.Context, arg2 client.Issue, arg3 githubv4.String) (bool, error) {
+func (fake *FakeClient) UpdateIssueStatus(arg1 context.Context, arg2 client.Issue, arg3 githubv4.String, arg4 int) (bool, error) {
 	fake.updateIssueStatusMutex.Lock()
 	ret, specificReturn := fake.updateIssueStatusReturnsOnCall[len(fake.updateIssueStatusArgsForCall)]
 	fake.updateIssueStatusArgsForCall = append(fake.updateIssueStatusArgsForCall, struct {
 		arg1 context.Context
 		arg2 client.Issue
 		arg3 githubv4.String
-	}{arg1, arg2, arg3})
+		arg4 int
+	}{arg1, arg2, arg3, arg4})
 	stub := fake.UpdateIssueStatusStub
 	fakeReturns := fake.updateIssueStatusReturns
-	fake.recordInvocation("UpdateIssueStatus", []interface{}{arg1, arg2, arg3})
+	fake.recordInvocation("UpdateIssueStatus", []interface{}{arg1, arg2, arg3, arg4})
 	fake.updateIssueStatusMutex.Unlock()
 	if stub != nil {
-		return stub(arg1, arg2, arg3)
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -840,17 +842,17 @@ func (fake *FakeClient) UpdateIssueStatusCallCount() int {
 	return len(fake.updateIssueStatusArgsForCall)
 }
 
-func (fake *FakeClient) UpdateIssueStatusCalls(stub func(context.Context, client.Issue, githubv4.String) (bool, error)) {
+func (fake *FakeClient) UpdateIssueStatusCalls(stub func(context.Context, client.Issue, githubv4.String, int) (bool, error)) {
 	fake.updateIssueStatusMutex.Lock()
 	defer fake.updateIssueStatusMutex.Unlock()
 	fake.UpdateIssueStatusStub = stub
 }
 
-func (fake *FakeClient) UpdateIssueStatusArgsForCall(i int) (context.Context, client.Issue, githubv4.String) {
+func (fake *FakeClient) UpdateIssueStatusArgsForCall(i int) (context.Context, client.Issue, githubv4.String, int) {
 	fake.updateIssueStatusMutex.RLock()
 	defer fake.updateIssueStatusMutex.RUnlock()
 	argsForCall := fake.updateIssueStatusArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
 func (fake *FakeClient) UpdateIssueStatusReturns(result1 bool, result2 error) {

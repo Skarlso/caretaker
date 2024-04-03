@@ -381,7 +381,7 @@ type projectQueryForOrganization struct {
 			Items struct {
 				Nodes    []ProjectV2ItemWithIssueContent
 				PageInfo PageInfo
-			} `graphql:"items(first: 100)"`
+			} `graphql:"items(first: $first, after: $after)"`
 		} `graphql:"projectV2(number: $number)"`
 	} `graphql:"organization(login: $login)"`
 }

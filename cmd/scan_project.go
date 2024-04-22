@@ -57,6 +57,7 @@ func scanProjectRunE(rootArgs *rootArgsStruct) func(cmd *cobra.Command, args []s
 			Repo:           rootArgs.repo,
 			Owner:          rootArgs.owner,
 			IsOrganization: rootArgs.isOrganization != "",
+			MoveClosed:     rootArgs.moveClosed != "",
 		})
 		scanner := scanproject.NewScanner(log, caretaker, scanproject.Options{
 			ProjectNumber: projectNumber,

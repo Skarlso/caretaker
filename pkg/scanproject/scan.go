@@ -43,6 +43,8 @@ func (c *Scanner) ScanIssues(ctx context.Context) error {
 		return err
 	}
 
+	c.log.Log("updating %d items", len(items))
+
 	for _, i := range items {
 		item := i
 		if v := item.FieldValueByName.ProjectV2SingleSelectField.Name; v != githubv4.String(c.FromStatus) {
@@ -62,6 +64,8 @@ func (c *Scanner) ScanIssues(ctx context.Context) error {
 
 			continue
 		}
+
+		c.log.Log("updating issues with title %s", item.Content.Issue.Title)
 
 		if _, err := c.client.UpdateIssueStatus(
 			ctx,

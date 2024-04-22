@@ -47,6 +47,10 @@ inputs:
     description: 'Indicate whether the user is an organization or a user. False if empty.'
     required: false
     default: ''
+  moveClosed:
+    description: 'Force moving closed issues. By default, closed issues aren't updated.'
+    required: false
+    default: ''
   disableComments:
     description: 'Disable Caretaker commenting back into the Pull Request.'
     required: false
@@ -92,6 +96,7 @@ runs:
     - --disable-comments=${{ inputs.disableComments }}
     - --comment-id=${{ inputs.commentID }}
     - --comment-body=${{ inputs.commentBody }}
+    - --move-closed=${{ inputs.moveClosed }}
 branding:
   icon: "arrow-right-circle"
   color: purple

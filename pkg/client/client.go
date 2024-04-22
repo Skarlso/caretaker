@@ -149,6 +149,7 @@ type Options struct {
 	Repo           string
 	Owner          string
 	IsOrganization bool
+	MoveClosed     bool
 }
 
 // Caretaker defines the main Caretaker capabilities.
@@ -455,7 +456,7 @@ func (c *Caretaker) UpdateIssueStatus(
 	statusName githubv4.String,
 	projectNumber int,
 ) (bool, error) {
-	if issue.Closed {
+	if bool(issue.Closed) && !c.MoveClosed {
 		c.log.Log("issue %s already closed, skip", issue.Title)
 
 		return false, nil

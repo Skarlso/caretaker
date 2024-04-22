@@ -27,6 +27,7 @@ type rootArgsStruct struct {
 	commentID                 string
 	actor                     string
 	fromStatusOption          string
+	moveClosed                string
 }
 
 func CreateRootCommand() *cobra.Command {
@@ -127,6 +128,12 @@ func CreateRootCommand() *cobra.Command {
 		"",
 		"--actor is the username of the actor who performed the action",
 	)
+	flag.StringVar(
+		&rootArgs.moveClosed,
+		"move-closed",
+		"",
+		"--move-closed will edit closed issues, by default closed issues are not moved",
+	)
 
 	markFlagAsRequired(rootCmd, "token")
 	markFlagAsRequired(rootCmd, "owner")
@@ -137,7 +144,14 @@ func CreateRootCommand() *cobra.Command {
 	slashCommandCmd := CreateSlashCommand(rootArgs)
 	updateIssueCommandCmd := CreateUpdateIssueCommand(rootArgs)
 	scanProjectCmd := CreateScanProjectCommand(rootArgs)
-	rootCmd.AddCommand(scanCmd, pullRequestUpdatedCmd, assignIssueCmd, slashCommandCmd, updateIssueCommandCmd, scanProjectCmd)
+	rootCmd.AddCommand(
+		scanCmd,
+		pullRequestUpdatedCmd,
+		assignIssueCmd,
+		slashCommandCmd,
+		updateIssueCommandCmd,
+		scanProjectCmd,
+	)
 
 	return rootCmd
 }

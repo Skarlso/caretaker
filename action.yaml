@@ -48,7 +48,7 @@ inputs:
     required: false
     default: ''
   moveClosed:
-    description: 'Force moving closed issues. By default, closed issues aren't updated.'
+    description: 'Force moving closed issues. By default, closed issues are not updated.'
     required: false
     default: ''
   disableComments:

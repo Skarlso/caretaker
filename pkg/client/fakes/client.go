@@ -143,11 +143,11 @@ type FakeClient struct {
 	removeLabelReturnsOnCall map[int]struct {
 		result1 error
 	}
-	UpdateIssueStatusStub        func(context.Context, client.Issue, githubv4.String, int) (bool, error)
+	UpdateIssueStatusStub        func(context.Context, client.GenericIssue, githubv4.String, int) (bool, error)
 	updateIssueStatusMutex       sync.RWMutex
 	updateIssueStatusArgsForCall []struct {
 		arg1 context.Context
-		arg2 client.Issue
+		arg2 client.GenericIssue
 		arg3 githubv4.String
 		arg4 int
 	}
@@ -814,12 +814,12 @@ func (fake *FakeClient) RemoveLabelReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeClient) UpdateIssueStatus(arg1 context.Context, arg2 client.Issue, arg3 githubv4.String, arg4 int) (bool, error) {
+func (fake *FakeClient) UpdateIssueStatus(arg1 context.Context, arg2 client.GenericIssue, arg3 githubv4.String, arg4 int) (bool, error) {
 	fake.updateIssueStatusMutex.Lock()
 	ret, specificReturn := fake.updateIssueStatusReturnsOnCall[len(fake.updateIssueStatusArgsForCall)]
 	fake.updateIssueStatusArgsForCall = append(fake.updateIssueStatusArgsForCall, struct {
 		arg1 context.Context
-		arg2 client.Issue
+		arg2 client.GenericIssue
 		arg3 githubv4.String
 		arg4 int
 	}{arg1, arg2, arg3, arg4})
@@ -842,13 +842,13 @@ func (fake *FakeClient) UpdateIssueStatusCallCount() int {
 	return len(fake.updateIssueStatusArgsForCall)
 }
 
-func (fake *FakeClient) UpdateIssueStatusCalls(stub func(context.Context, client.Issue, githubv4.String, int) (bool, error)) {
+func (fake *FakeClient) UpdateIssueStatusCalls(stub func(context.Context, client.GenericIssue, githubv4.String, int) (bool, error)) {
 	fake.updateIssueStatusMutex.Lock()
 	defer fake.updateIssueStatusMutex.Unlock()
 	fake.UpdateIssueStatusStub = stub
 }
 
-func (fake *FakeClient) UpdateIssueStatusArgsForCall(i int) (context.Context, client.Issue, githubv4.String, int) {
+func (fake *FakeClient) UpdateIssueStatusArgsForCall(i int) (context.Context, client.GenericIssue, githubv4.String, int) {
 	fake.updateIssueStatusMutex.RLock()
 	defer fake.updateIssueStatusMutex.RUnlock()
 	argsForCall := fake.updateIssueStatusArgsForCall[i]

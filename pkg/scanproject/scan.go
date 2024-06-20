@@ -45,8 +45,7 @@ func (c *Scanner) ScanIssues(ctx context.Context) error {
 
 	c.log.Log("updating %d items", len(items))
 
-	for _, i := range items {
-		item := i
+	for _, item := range items {
 		if v := item.FieldValueByName.ProjectV2SingleSelectField.Name; v != githubv4.String(c.FromStatus) {
 			c.log.Log("skipping issue %s; status %s doesn't match with %s", item.Content.Issue.Title, v, c.FromStatus)
 
@@ -65,15 +64,28 @@ func (c *Scanner) ScanIssues(ctx context.Context) error {
 			continue
 		}
 
-		c.log.Log("updating issues with title %s", item.Content.Issue.Title)
+		if item.Type == client.IssueType {
+			c.log.Log("updating issues with title %s", item.Content.Issue.Title)
 
-		if _, err := c.client.UpdateIssueStatus(
-			ctx,
-			item.Content.Issue,
-			githubv4.String(c.ToStatus),
-			c.ProjectNumber,
-		); err != nil {
-			return fmt.Errorf("failed to update issue: %w", err)
+			if _, err := c.client.UpdateIssueStatus(
+				ctx,
+				item.Content.Issue,
+				githubv4.String(c.ToStatus),
+				c.ProjectNumber,
+			); err != nil {
+				return fmt.Errorf("failed to update issue: %w", err)
+			}
+		} else if item.Type == client.PullRequestType {
+			c.log.Log("updating pull request with title %s", item.Content.PullRequest.Number)
+
+			if _, err := c.client.UpdateIssueStatus(
+				ctx,
+				item.Content.PullRequest,
+				githubv4.String(c.ToStatus),
+				c.ProjectNumber,
+			); err != nil {
+				return fmt.Errorf("failed to update issue: %w", err)
+			}
 		}
 	}
 

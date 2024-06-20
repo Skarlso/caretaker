@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/shurcooL/githubv4"
-	"github.com/shurcooL/graphql"
 
 	"github.com/skarlso/caretaker/pkg/logger"
 )
@@ -28,6 +27,8 @@ type PullRequest struct {
 	ID        githubv4.ID
 	Number    githubv4.Int
 	UpdatedAt githubv4.Date
+	Closed    githubv4.Boolean
+	Title     githubv4.String
 	Labels    struct {
 		Nodes []struct {
 			Name githubv4.String
@@ -40,6 +41,32 @@ type PullRequest struct {
 			HasNextPage bool
 		} // should not be needed because we don't reference hundreds of issues per pull request.
 	} `graphql:"closingIssuesReferences(first: 10)"`
+	ProjectsV2   ProjectsV2   `graphql:"projectsV2(first: 10)"`
+	ProjectItems ProjectItems `graphql:"projectItems(first: 20)"`
+}
+
+func (p PullRequest) GetTitle() githubv4.String {
+	return p.Title
+}
+
+func (p PullRequest) GetID() githubv4.ID {
+	return p.ID
+}
+
+func (p PullRequest) GetNumber() githubv4.Int {
+	return p.Number
+}
+
+func (p PullRequest) GetProjectsV2() ProjectsV2 {
+	return p.ProjectsV2
+}
+
+func (p PullRequest) GetProjectItems() ProjectItems {
+	return p.ProjectItems
+}
+
+func (p PullRequest) IsClosed() bool {
+	return bool(p.Closed)
 }
 
 // ProjectV2Item https://docs.github.com/en/graphql/reference/objects#projectv2item
@@ -53,6 +80,13 @@ type ProjectV2Item struct {
 	} `graphql:"fieldValueByName(name: \"Status\")"`
 }
 
+// The fields need to be none pointer types to unmarshal. Hence, we need to
+// check types of the returned items.
+const (
+	IssueType       = "ISSUE"
+	PullRequestType = "PULL_REQUEST"
+)
+
 // ProjectV2ItemWithIssueContent https://docs.github.com/en/graphql/reference/objects#projectv2item
 type ProjectV2ItemWithIssueContent struct {
 	ID        githubv4.String
@@ -60,7 +94,8 @@ type ProjectV2ItemWithIssueContent struct {
 	Type      githubv4.String
 	UpdatedAt githubv4.Date
 	Content   struct {
-		Issue Issue `graphql:"... on Issue"`
+		Issue       Issue       `graphql:"... on Issue"`
+		PullRequest PullRequest `graphql:"... on PullRequest"`
 	}
 	FieldValueByName struct {
 		ProjectV2SingleSelectField struct {
@@ -69,19 +104,47 @@ type ProjectV2ItemWithIssueContent struct {
 	} `graphql:"fieldValueByName(name: \"Status\")"`
 }
 
+type ProjectsV2 struct {
+	Nodes []ProjectV2
+}
+
+type ProjectItems struct {
+	TotalCount githubv4.Int
+	Nodes      []ProjectV2Item
+}
+
 // Issue https://docs.github.com/en/graphql/reference/objects#issue
 type Issue struct {
-	ID         githubv4.ID
-	Closed     githubv4.Boolean
-	Title      githubv4.String
-	Number     githubv4.Int
-	ProjectsV2 struct {
-		Nodes []ProjectV2
-	} `graphql:"projectsV2(first: 10)"`
-	ProjectItems struct {
-		TotalCount githubv4.Int
-		Nodes      []ProjectV2Item
-	} `graphql:"projectItems(first: 20)"`
+	ID           githubv4.ID
+	Closed       githubv4.Boolean
+	Title        githubv4.String
+	Number       githubv4.Int
+	ProjectsV2   ProjectsV2   `graphql:"projectsV2(first: 10)"`
+	ProjectItems ProjectItems `graphql:"projectItems(first: 20)"`
+}
+
+func (i Issue) GetTitle() githubv4.String {
+	return i.Title
+}
+
+func (i Issue) GetID() githubv4.ID {
+	return i.ID
+}
+
+func (i Issue) GetNumber() githubv4.Int {
+	return i.Number
+}
+
+func (i Issue) GetProjectsV2() ProjectsV2 {
+	return i.ProjectsV2
+}
+
+func (i Issue) GetProjectItems() ProjectItems {
+	return i.ProjectItems
+}
+
+func (i Issue) IsClosed() bool {
+	return bool(i.Closed)
 }
 
 // Comment https://docs.github.com/en/graphql/reference/objects#issuecomment
@@ -140,7 +203,7 @@ type Client interface {
 		ctx context.Context,
 		projectNumber int,
 	) ([]ProjectV2ItemWithIssueContent, error)
-	UpdateIssueStatus(ctx context.Context, issue Issue, statusName githubv4.String, projectNumber int) (bool, error)
+	UpdateIssueStatus(ctx context.Context, issue GenericIssue, statusName githubv4.String, projectNumber int) (bool, error)
 	User(ctx context.Context, username string) (User, error)
 }
 
@@ -353,8 +416,8 @@ func (c *Caretaker) Issue(ctx context.Context, issueNumber int) (Issue, error) {
 }
 
 type PageInfo struct {
-	EndCursor   graphql.String
-	HasNextPage graphql.Boolean
+	EndCursor   githubv4.String
+	HasNextPage githubv4.Boolean
 }
 
 type projectQueryForUser struct {
@@ -411,8 +474,8 @@ func (c *Caretaker) ProjectItems(ctx context.Context, projectNumber int) ([]Proj
 	projectValues := map[string]any{
 		"login":  githubv4.String(c.Owner),
 		"number": githubv4.Int(projectNumber),
-		"first":  graphql.Int(itemPerPage),
-		"after":  (*graphql.String)(nil),
+		"first":  githubv4.Int(itemPerPage),
+		"after":  (*githubv4.String)(nil),
 	}
 
 	var result []ProjectV2ItemWithIssueContent
@@ -428,7 +491,7 @@ func (c *Caretaker) ProjectItems(ctx context.Context, projectNumber int) ([]Proj
 			break
 		}
 
-		projectValues["after"] = projectQuery.PageInfo().EndCursor
+		projectValues["after"] = githubv4.NewString(projectQuery.PageInfo().EndCursor)
 	}
 
 	return result, nil
@@ -450,14 +513,23 @@ func (c *Caretaker) User(ctx context.Context, name string) (User, error) {
 	return user.User, nil
 }
 
+type GenericIssue interface {
+	GetTitle() githubv4.String
+	GetID() githubv4.ID
+	GetNumber() githubv4.Int
+	GetProjectsV2() ProjectsV2
+	GetProjectItems() ProjectItems
+	IsClosed() bool
+}
+
 func (c *Caretaker) UpdateIssueStatus(
 	ctx context.Context,
-	issue Issue,
+	issue GenericIssue,
 	statusName githubv4.String,
 	projectNumber int,
 ) (bool, error) {
-	if bool(issue.Closed) && !c.MoveClosed {
-		c.log.Log("issue %s already closed, skip", issue.Title)
+	if issue.IsClosed() && !c.MoveClosed {
+		c.log.Log("issue %s already closed, skip", issue.GetTitle())
 
 		return false, nil
 	}
@@ -473,8 +545,8 @@ func (c *Caretaker) UpdateIssueStatus(
 
 	var updated bool
 
-	for _, project := range issue.ProjectsV2.Nodes {
-		c.log.Debug("issue number %d and title %s on project: %s", issue.Number, issue.Title, project.Title)
+	for _, project := range issue.GetProjectsV2().Nodes {
+		c.log.Debug("issue number %d and title %s on project: %s", issue.GetNumber(), issue.GetTitle(), project.Title)
 
 		if projectNumber > 0 && int(project.Number) != projectNumber {
 			c.log.Log("skipping project number %d as it wasn't requested for update", project.Number)
@@ -485,7 +557,7 @@ func (c *Caretaker) UpdateIssueStatus(
 		var projectItem ProjectV2Item
 
 		// Select the right project item for the project we are checking.
-		for _, i := range issue.ProjectItems.Nodes {
+		for _, i := range issue.GetProjectItems().Nodes {
 			if i.Project.ID == project.ID {
 				projectItem = i
 
@@ -538,7 +610,7 @@ func (c *Caretaker) UpdateIssueStatus(
 			return false, fmt.Errorf("failed to mutate issue: %w", err)
 		}
 
-		c.log.Log("updated status on issue %s with number %d", issue.Title, issue.Number)
+		c.log.Log("updated status on issue %s with number %d", issue.GetTitle(), issue.GetNumber())
 
 		updated = true
 	}
